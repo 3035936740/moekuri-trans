@@ -15,6 +15,7 @@ def main():
     txt=ROOT/'1.10trans.txt';csv=ROOT/'1.10trans.csv';dictionary=rows(txt)
     overrides=json.loads((ROOT/'catalog-overrides.json').read_text(encoding='utf-8'))
     assert all(dictionary[k][0]==v for k,v in overrides.items())
+    assert all(k==v[0] for k,v in dictionary.items() if k.startswith('@'))
     assert not any(term in value[0] for value in dictionary.values()
                    for term in ('萌萌物语','萌萌魔物','萌库里２'))
     assert run(TOOL,'--validate',txt)['rows']==len(dictionary)
@@ -40,7 +41,8 @@ def main():
         known=json.loads(reference.read_text(encoding='utf-8-sig'))
         assert all(dictionary[k][0]==overrides.get(k,v) for k,v in known.items())
         report['reference_rows_covered']=len(known)
-        report['reference_rows_overridden']=len(overrides)
+        report['reference_rows_overridden']=sum(k in known and known[k]!=v for k,v in overrides.items())
+        report['protected_script_identifiers']=sum(k.startswith('@') for k in overrides)
     patched=ROOT/'build/optimized.exe'
     if patched.exists():
         info=run(TOOL,'--inspect',patched)

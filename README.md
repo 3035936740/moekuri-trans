@@ -2,9 +2,11 @@
 
 MoeKuri 2 日文 1.10 的 UTF-8 翻译编辑、提取和单 EXE 打包工具。C++17 · Win32 x86 · Windows 8+
 
-UTF-8 translation editor, extractor and single-EXE packager for the Japanese 1.10 release of MoeKuri 2.
+UTF-8 translation editor, extractor and single-EXE packager for the Japanese 1.10 release of MoeKuri 2. Dynamic text uses bounded template matching, complete string-argument translation, kana-width normalization and preserved line boundaries, based on the local MOD implementation.
 
-`catalog-overrides.json` records four title/numeral corrections to the reference catalog, applied to both import examples and generated EXEs.
+`catalog-overrides.json` records four title/numeral corrections and preserves 17 script identifiers. Standalone `@` identifiers such as `@ブラリボン` remain Japanese and are excluded from the runtime lookup table; visible names such as `ブラリボン` can still be translated. Story commands are preserved; encyclopedia descriptions and dialogue after `#txt@` are translated before rendering, so typewriter text starts in the target language.
+
+`@ブラリボン` 等独立 `@` 标识符保留日文，并排除出运行时替换表；显示名称 `ブラリボン` 仍可译为“布拉玛（缎带）”。剧情命令不翻译，图鉴介绍和 `#txt@` 后的对白在读取时翻译，剧情从第一个字起直接显示译文。
 
 [中文](#zh-简体中文) · [English](#en-english) · [한국어](#ko-한국어) · [Français](#fr-français) · [日本語](#ja-日本語) · [Italiano](#it-italiano) · [Deutsch](#de-deutsch) · [Русский](#ru-русский) · [العربية](#ar-العربية) · [Español](#es-español)
 
@@ -21,7 +23,7 @@ moekuri-trans/
 ├── 1.10trans.csv           Equivalent UTF-8 BOM CSV example (not duplicated in Release)
 ├── 1.10trans-report.json   Reference coverage and provenance
 ├── translation.txt         Local working catalog
-├── catalog-overrides.json   Reviewed game-title corrections
+├── catalog-overrides.json   Reviewed titles and protected script identifiers
 ├── font.ttf                 Default Xiaolai font (tracked and distributed)
 ├── FONT-LICENSE-OFL.txt     Font license
 ├── FONT-NOTICES.txt         Font attribution
@@ -35,7 +37,7 @@ Local/generated files: `MoeKuriTools.exe`, `build/`, `tools-settings.json`, dist
 
 ### 1.10 导入样例与 EXE 标记
 
-在工具中点击“导入词库”，选择 `1.10trans.txt` 或 `1.10trans.csv`。两份样例都是简体中文词库，包含 **16,797 条**，覆盖参考汉化目录中的全部 **13,081 条**，并补入地形附加效果、显示标签、剧情拆行及半角/换行变体；署名和同形术语保留原文。TXT 为 UTF-8，CSV 为带 BOM 的 UTF-8。默认先读取本地 `translation.txt`，没有时加载 `1.10trans.txt`；精简 Release 只附 TXT 样例，CSV 可通过“导出词库”生成。
+在工具中点击“导入词库”，选择 `1.10trans.txt` 或 `1.10trans.csv`。两份样例都是简体中文词库，包含 **16,808 条**，覆盖参考汉化目录中的全部 **13,084 条**，并补入地形附加效果、显示标签、剧情拆行及半角/换行变体；署名和同形术语保留原文。TXT 为 UTF-8，CSV 为带 BOM 的 UTF-8。默认先读取本地 `translation.txt`，没有时加载 `1.10trans.txt`；精简 Release 只附 TXT 样例，CSV 可通过“导出词库”生成。
 
 生成的游戏 EXE 包含独立只读 PE 区段 **`.mktrans`**。其开头是明文 ASCII `moekuri_trans` 加 NUL，随后为 UTF-8 JSON，记录标记版本、原版 EXE SHA256、词库 SHA256、条目数及字体模式。可在 PE 查看器中找到该区段，或运行 `MoeKuriTools.exe --inspect 翻译版.exe` 检查。
 
@@ -74,7 +76,7 @@ Local/generated files: `MoeKuriTools.exe`, `build/`, `tools-settings.json`, dist
 
 字体、查找数据及原始 UTF-8 词库一起进行 XPRESS Huffman 无损压缩，运行时在内存解压并设为只读，不生成临时文件，也不需要额外压缩 DLL 文件。新工具同时可解包旧的未压缩 EXE。
 
-当前 16,797 条词库 + Xiaolai 字体，测试版由 29,322,752 字节（27.96 MiB）降至 9,140,224 字节（8.72 MiB），约减少 69%；内嵌字体由 22,220,806 字节精简到 4,399,724 字节。已对照完整字体检查词库及可提取文本所需字符的字形覆盖，并通过加载和字体注册探针。
+当前 16,808 条词库 + Xiaolai 字体，测试版由 29,322,752 字节（27.96 MiB）降至 9,145,856 字节（8.72 MiB），约减少 69%；内嵌字体由 22,220,806 字节精简到 4,399,724 字节。已对照完整字体检查词库及可提取文本所需字符的字形覆盖，并通过加载和字体注册探针。
 
 精简版解包得到的是精简后的字体。如果新增了原先未保留的字符，请重新选择完整字体文件后生成；对于无法提取的动态内容，也可关闭字体优化保留完整覆盖。
 
@@ -135,7 +137,7 @@ python tests/regression.py
 
 ### 1.10 import example and EXE marker
 
-Use Import catalog to open `1.10trans.txt` or `1.10trans.csv`. Both contain **16,797 Simplified Chinese entries**, covering all **13,081 reference entries**, plus terrain effects, display labels and exact line/Unicode-width variants. Credits and identical terms retain their source spelling. TXT is UTF-8; CSV is UTF-8 with BOM. Startup loads local `translation.txt`, falling back to `1.10trans.txt`. The minimal release ships only the TXT example; export CSV with the tool.
+Use Import catalog to open `1.10trans.txt` or `1.10trans.csv`. Both contain **16,808 Simplified Chinese entries**, covering all **13,084 reference entries**, plus terrain effects, display labels and exact line/Unicode-width variants. Credits and identical terms retain their source spelling. TXT is UTF-8; CSV is UTF-8 with BOM. Startup loads local `translation.txt`, falling back to `1.10trans.txt`. The minimal release ships only the TXT example; export CSV with the tool.
 
 Generated game EXEs have a read-only **`.mktrans`** PE section containing ASCII `moekuri_trans`, NUL, then UTF-8 JSON: marker version, original EXE and catalog SHA256, row count and font mode. Inspect with a PE viewer or `MoeKuriTools.exe --inspect translated.exe`.
 
@@ -175,7 +177,7 @@ Only the original EXE with SHA256 `1c79a2d328d8ccd69765ac624b48f2317d80688c3dc74
 
 ### 1.10 가져오기 예제 및 EXE 표시
 
-번역 목록 가져오기에서 `1.10trans.txt` 또는 `1.10trans.csv`를 선택하세요. 중국어 간체 **16,797개 항목**이며 참고 번역 **13,081개**와 지형 효과·표시 문자열·줄바꿈·문자 폭 변형을 포함합니다. 이름과 같은 표기 용어는 유지됩니다. TXT는 UTF-8, CSV는 BOM 포함 UTF-8입니다. 시작 시 `translation.txt`, 없으면 `1.10trans.txt`를 읽습니다. 최소 배포판에는 TXT만 포함되고 CSV는 도구로 내보낼 수 있습니다.
+번역 목록 가져오기에서 `1.10trans.txt` 또는 `1.10trans.csv`를 선택하세요. 중국어 간체 **16,808개 항목**이며 참고 번역 **13,084개**와 지형 효과·표시 문자열·줄바꿈·문자 폭 변형을 포함합니다. 이름과 같은 표기 용어는 유지됩니다. TXT는 UTF-8, CSV는 BOM 포함 UTF-8입니다. 시작 시 `translation.txt`, 없으면 `1.10trans.txt`를 읽습니다. 최소 배포판에는 TXT만 포함되고 CSV는 도구로 내보낼 수 있습니다.
 
 생성된 게임 EXE의 읽기 전용 **`.mktrans`** PE 섹션에는 ASCII `moekuri_trans`, NUL, UTF-8 JSON이 들어 있습니다. 버전, 원본 EXE/번역 목록 SHA256, 항목 수, 글꼴 모드를 기록합니다. PE 뷰어 또는 `MoeKuriTools.exe --inspect translated.exe`로 확인하세요.
 
@@ -213,7 +215,7 @@ VS 2022의 C++ 데스크톱 개발 구성 요소와 Windows SDK를 설치하고 
 
 ### Exemple 1.10 et marqueur EXE
 
-Importer catalogue ouvre `1.10trans.txt` ou `1.10trans.csv` : **16 797 entrées en chinois simplifié**, dont les **13 081 entrées de référence**, effets de terrain et variantes d’affichage, de lignes et de largeur Unicode. Les noms crédités et termes identiques restent inchangés. TXT : UTF-8 ; CSV : UTF-8 avec BOM. Au démarrage, `translation.txt` est prioritaire, sinon `1.10trans.txt`. La Release minimale contient le TXT ; exporter le CSV depuis l’outil.
+Importer catalogue ouvre `1.10trans.txt` ou `1.10trans.csv` : **16 808 entrées en chinois simplifié**, dont les **13 084 entrées de référence**, effets de terrain et variantes d’affichage, de lignes et de largeur Unicode. Les noms crédités et termes identiques restent inchangés. TXT : UTF-8 ; CSV : UTF-8 avec BOM. Au démarrage, `translation.txt` est prioritaire, sinon `1.10trans.txt`. La Release minimale contient le TXT ; exporter le CSV depuis l’outil.
 
 Les EXE créés contiennent une section PE en lecture seule **`.mktrans`** : ASCII `moekuri_trans`, NUL puis JSON UTF-8 avec version, SHA256 du jeu original et du catalogue, nombre d’entrées et mode de police. Utiliser un lecteur PE ou `MoeKuriTools.exe --inspect translated.exe`.
 
@@ -251,7 +253,7 @@ Le cas testé passe de 27,96 à 8,72 MiB avec réduction de police et compressio
 
 ### 1.10 辞書サンプルと EXE マーカー
 
-「辞書を読み込み」で `1.10trans.txt` または `1.10trans.csv` を選びます。簡体字中国語 **16,797 項目**で、参照辞書の **13,081 項目**と、地形の追加効果、表示ラベル、改行・文字幅の差を含みます。クレジット名と同形語は保持します。TXT は UTF-8、CSV は BOM 付き UTF-8。起動時は `translation.txt`、なければ `1.10trans.txt` を読みます。最小リリースには TXT のみを収録し、CSV はツールから出力できます。
+「辞書を読み込み」で `1.10trans.txt` または `1.10trans.csv` を選びます。簡体字中国語 **16,808 項目**で、参照辞書の **13,084 項目**と、地形の追加効果、表示ラベル、改行・文字幅の差を含みます。クレジット名と同形語は保持します。TXT は UTF-8、CSV は BOM 付き UTF-8。起動時は `translation.txt`、なければ `1.10trans.txt` を読みます。最小リリースには TXT のみを収録し、CSV はツールから出力できます。
 
 生成したゲーム EXE の読み取り専用 PE セクション **`.mktrans`** には ASCII `moekuri_trans`、NUL、UTF-8 JSON を格納します。バージョン、原版 EXE と辞書の SHA256、項目数、フォントモードを記録します。PE ビューアーまたは `MoeKuriTools.exe --inspect translated.exe` で確認できます。
 
@@ -289,7 +291,7 @@ VS 2022 の C++ デスクトップ開発と Windows SDK を用意し、`cmd /c b
 
 ### Esempio 1.10 e marcatore EXE
 
-Importa catalogo apre `1.10trans.txt` o `1.10trans.csv`: **16.797 voci in cinese semplificato**, incluse le **13.081 voci di riferimento**, effetti del terreno e varianti di visualizzazione, righe e larghezza Unicode. Crediti e termini identici sono preservati. TXT: UTF-8; CSV: UTF-8 con BOM. All’avvio si usa `translation.txt`, altrimenti `1.10trans.txt`. La release minima include solo il TXT; il CSV si esporta dallo strumento.
+Importa catalogo apre `1.10trans.txt` o `1.10trans.csv`: **16.808 voci in cinese semplificato**, incluse le **13.084 voci di riferimento**, effetti del terreno e varianti di visualizzazione, righe e larghezza Unicode. Crediti e termini identici sono preservati. TXT: UTF-8; CSV: UTF-8 con BOM. All’avvio si usa `translation.txt`, altrimenti `1.10trans.txt`. La release minima include solo il TXT; il CSV si esporta dallo strumento.
 
 Gli EXE generati hanno una sezione PE di sola lettura **`.mktrans`**: ASCII `moekuri_trans`, NUL, poi JSON UTF-8 con versione, SHA256 dell’EXE originale e del catalogo, numero di voci e modalità font. Usa un lettore PE o `MoeKuriTools.exe --inspect translated.exe`.
 
@@ -327,7 +329,7 @@ Il caso verificato è passato da 27,96 a 8,72 MiB grazie ai glifi ridotti e alla
 
 ### 1.10-Importbeispiel und EXE-Markierung
 
-Katalog importieren öffnet `1.10trans.txt` oder `1.10trans.csv`: **16.797 Einträge in vereinfachtem Chinesisch**, einschließlich aller **13.081 Referenzeinträge**, Geländeeffekte sowie Anzeige-, Zeilen- und Unicode-Breitenvarianten. Credits und gleich geschriebene Begriffe bleiben erhalten. TXT ist UTF-8, CSV UTF-8 mit BOM. Beim Start gilt `translation.txt`, sonst `1.10trans.txt`. Das minimale Release enthält nur TXT; CSV lässt sich im Werkzeug exportieren.
+Katalog importieren öffnet `1.10trans.txt` oder `1.10trans.csv`: **16.808 Einträge in vereinfachtem Chinesisch**, einschließlich aller **13.084 Referenzeinträge**, Geländeeffekte sowie Anzeige-, Zeilen- und Unicode-Breitenvarianten. Credits und gleich geschriebene Begriffe bleiben erhalten. TXT ist UTF-8, CSV UTF-8 mit BOM. Beim Start gilt `translation.txt`, sonst `1.10trans.txt`. Das minimale Release enthält nur TXT; CSV lässt sich im Werkzeug exportieren.
 
 Erzeugte EXEs enthalten den schreibgeschützten PE-Abschnitt **`.mktrans`**: ASCII `moekuri_trans`, NUL, dann UTF-8-JSON mit Version, SHA256 von Original-EXE und Katalog, Eintragszahl und Schriftmodus. Prüfung mit PE-Viewer oder `MoeKuriTools.exe --inspect translated.exe`.
 
@@ -365,7 +367,7 @@ Der geprüfte Fall schrumpfte durch Schriftoptimierung und verlustfreie Kompress
 
 ### Пример 1.10 и метка EXE
 
-Импорт словаря открывает `1.10trans.txt` или `1.10trans.csv`: **16 797 записей на упрощённом китайском**, включая все **13 081 исходную запись**, эффекты местности, подписи и варианты строк/ширины Unicode. Имена в титрах и одинаковые термины сохраняются. TXT — UTF-8, CSV — UTF-8 с BOM. При запуске используется `translation.txt`, иначе `1.10trans.txt`. Минимальный выпуск содержит только TXT; CSV экспортируется инструментом.
+Импорт словаря открывает `1.10trans.txt` или `1.10trans.csv`: **16 808 записей на упрощённом китайском**, включая все **13 084 исходную запись**, эффекты местности, подписи и варианты строк/ширины Unicode. Имена в титрах и одинаковые термины сохраняются. TXT — UTF-8, CSV — UTF-8 с BOM. При запуске используется `translation.txt`, иначе `1.10trans.txt`. Минимальный выпуск содержит только TXT; CSV экспортируется инструментом.
 
 Созданный EXE содержит PE-секцию только для чтения **`.mktrans`**: ASCII `moekuri_trans`, NUL и JSON UTF-8 с версией, SHA256 оригинального EXE и словаря, количеством записей и режимом шрифта. Проверка: просмотрщик PE или `MoeKuriTools.exe --inspect translated.exe`.
 
@@ -403,7 +405,7 @@ TXT/TSV разделяют поля настоящей табуляцией; в�
 
 ### مثال 1.10 وعلامة EXE
 
-افتح `1.10trans.txt` أو `1.10trans.csv` عبر استيراد القاموس. يحتوي المثال على **16,797 نصًا بالصينية المبسطة**، ويغطي **13,081 نصًا مرجعيًا**، إضافةً إلى تأثيرات التضاريس والتسميات واختلافات الأسطر وعرض Unicode. تُحفظ أسماء الاعتمادات والمصطلحات المتطابقة. TXT بترميز UTF-8 وCSV بترميز UTF-8 مع BOM. يبدأ بقراءة `translation.txt` ثم `1.10trans.txt` عند غيابه. الإصدار المصغّر يتضمن TXT فقط؛ يمكن تصدير CSV بالأداة.
+افتح `1.10trans.txt` أو `1.10trans.csv` عبر استيراد القاموس. يحتوي المثال على **16,808 نصًا بالصينية المبسطة**، ويغطي **13,084 نصًا مرجعيًا**، إضافةً إلى تأثيرات التضاريس والتسميات واختلافات الأسطر وعرض Unicode. تُحفظ أسماء الاعتمادات والمصطلحات المتطابقة. TXT بترميز UTF-8 وCSV بترميز UTF-8 مع BOM. يبدأ بقراءة `translation.txt` ثم `1.10trans.txt` عند غيابه. الإصدار المصغّر يتضمن TXT فقط؛ يمكن تصدير CSV بالأداة.
 
 يحتوي EXE الناتج على قسم PE للقراءة فقط **`.mktrans`**: ASCII `moekuri_trans` ثم NUL ثم JSON بترميز UTF-8 يسجّل الإصدار وSHA256 للعبة الأصلية والقاموس وعدد النصوص ووضع الخط. افحصه بعارض PE أو `MoeKuriTools.exe --inspect translated.exe`.
 
@@ -441,7 +443,7 @@ TXT/TSV разделяют поля настоящей табуляцией; в�
 
 ### Ejemplo 1.10 y marca EXE
 
-Importar catálogo abre `1.10trans.txt` o `1.10trans.csv`: **16.797 entradas en chino simplificado**, incluidas las **13.081 de referencia**, efectos del terreno y variantes de etiquetas, líneas y anchura Unicode. Se conservan créditos y términos idénticos. TXT usa UTF-8; CSV, UTF-8 con BOM. Al iniciar se carga `translation.txt`, o `1.10trans.txt` si falta. La versión mínima incluye solo TXT; el CSV se exporta desde la herramienta.
+Importar catálogo abre `1.10trans.txt` o `1.10trans.csv`: **16.808 entradas en chino simplificado**, incluidas las **13.084 de referencia**, efectos del terreno y variantes de etiquetas, líneas y anchura Unicode. Se conservan créditos y términos idénticos. TXT usa UTF-8; CSV, UTF-8 con BOM. Al iniciar se carga `translation.txt`, o `1.10trans.txt` si falta. La versión mínima incluye solo TXT; el CSV se exporta desde la herramienta.
 
 Los EXE generados contienen una sección PE de solo lectura **`.mktrans`**: ASCII `moekuri_trans`, NUL y JSON UTF-8 con versión, SHA256 del EXE original y del catálogo, número de entradas y modo de fuente. Usa un visor PE o `MoeKuriTools.exe --inspect translated.exe`.
 
