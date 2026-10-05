@@ -8,6 +8,8 @@ UTF-8 translation editor, extractor and single-EXE packager for the Japanese 1.1
 
 `@ブラリボン` 等独立 `@` 标识符保留日文，并排除出运行时替换表；显示名称 `ブラリボン` 仍可译为“布拉玛（缎带）”。剧情命令不翻译，图鉴介绍和 `#txt@` 后的对白在读取时翻译，剧情从第一个字起直接显示译文。
 
+技能、能力、职业、地形和战斗台词的 CSV 显示字段也在原生读取阶段翻译，再交给游戏解析与换行；数值、编号和非显示字段保留原样。强化提示及带数值的角色信息使用完整参数模板，支持无空格的数值行。原版资源档案不修改，超过原生行缓冲区的替换会保留原文。
+
 [中文](#zh-简体中文) · [English](#en-english) · [한국어](#ko-한국어) · [Français](#fr-français) · [日本語](#ja-日本語) · [Italiano](#it-italiano) · [Deutsch](#de-deutsch) · [Русский](#ru-русский) · [العربية](#ar-العربية) · [Español](#es-español)
 
 ```text
@@ -37,7 +39,7 @@ Local/generated files: `MoeKuriTools.exe`, `build/`, `tools-settings.json`, dist
 
 ### 1.10 导入样例与 EXE 标记
 
-在工具中点击“导入词库”，选择 `1.10trans.txt` 或 `1.10trans.csv`。两份样例都是简体中文词库，包含 **16,808 条**，覆盖参考汉化目录中的全部 **13,084 条**，并补入地形附加效果、显示标签、剧情拆行及半角/换行变体；署名和同形术语保留原文。TXT 为 UTF-8，CSV 为带 BOM 的 UTF-8。默认先读取本地 `translation.txt`，没有时加载 `1.10trans.txt`；精简 Release 只附 TXT 样例，CSV 可通过“导出词库”生成。
+在工具中点击“导入词库”，选择 `1.10trans.txt` 或 `1.10trans.csv`。两份样例都是简体中文词库，包含 **16,832 条**，覆盖参考汉化目录中的全部 **13,108 条**，并补入地形附加效果、显示标签、剧情拆行及半角/换行变体；署名和同形术语保留原文。TXT 为 UTF-8，CSV 为带 BOM 的 UTF-8。默认先读取本地 `translation.txt`，没有时加载 `1.10trans.txt`；精简 Release 只附 TXT 样例，CSV 可通过“导出词库”生成。
 
 生成的游戏 EXE 包含独立只读 PE 区段 **`.mktrans`**。其开头是明文 ASCII `moekuri_trans` 加 NUL，随后为 UTF-8 JSON，记录标记版本、原版 EXE SHA256、词库 SHA256、条目数及字体模式。可在 PE 查看器中找到该区段，或运行 `MoeKuriTools.exe --inspect 翻译版.exe` 检查。
 
@@ -76,7 +78,7 @@ Local/generated files: `MoeKuriTools.exe`, `build/`, `tools-settings.json`, dist
 
 字体、查找数据及原始 UTF-8 词库一起进行 XPRESS Huffman 无损压缩，运行时在内存解压并设为只读，不生成临时文件，也不需要额外压缩 DLL 文件。新工具同时可解包旧的未压缩 EXE。
 
-当前 16,808 条词库 + Xiaolai 字体，测试版由 29,322,752 字节（27.96 MiB）降至 9,145,856 字节（8.72 MiB），约减少 69%；内嵌字体由 22,220,806 字节精简到 4,399,724 字节。已对照完整字体检查词库及可提取文本所需字符的字形覆盖，并通过加载和字体注册探针。
+当前 16,832 条词库 + Xiaolai 字体，测试版由 29,322,752 字节（27.96 MiB）降至 9,151,488 字节（8.73 MiB），约减少 69%；内嵌字体由 22,220,806 字节精简到 4,399,724 字节。已对照完整字体检查词库及可提取文本所需字符的字形覆盖，并通过加载和字体注册探针。
 
 精简版解包得到的是精简后的字体。如果新增了原先未保留的字符，请重新选择完整字体文件后生成；对于无法提取的动态内容，也可关闭字体优化保留完整覆盖。
 
@@ -137,7 +139,7 @@ python tests/regression.py
 
 ### 1.10 import example and EXE marker
 
-Use Import catalog to open `1.10trans.txt` or `1.10trans.csv`. Both contain **16,808 Simplified Chinese entries**, covering all **13,084 reference entries**, plus terrain effects, display labels and exact line/Unicode-width variants. Credits and identical terms retain their source spelling. TXT is UTF-8; CSV is UTF-8 with BOM. Startup loads local `translation.txt`, falling back to `1.10trans.txt`. The minimal release ships only the TXT example; export CSV with the tool.
+Use Import catalog to open `1.10trans.txt` or `1.10trans.csv`. Both contain **16,832 Simplified Chinese entries**, covering all **13,108 reference entries**, plus terrain effects, display labels and exact line/Unicode-width variants. Credits and identical terms retain their source spelling. TXT is UTF-8; CSV is UTF-8 with BOM. Startup loads local `translation.txt`, falling back to `1.10trans.txt`. The minimal release ships only the TXT example; export CSV with the tool.
 
 Generated game EXEs have a read-only **`.mktrans`** PE section containing ASCII `moekuri_trans`, NUL, then UTF-8 JSON: marker version, original EXE and catalog SHA256, row count and font mode. Inspect with a PE viewer or `MoeKuriTools.exe --inspect translated.exe`.
 
@@ -167,7 +169,7 @@ The first launch follows the Windows UI language, with English as fallback. Manu
 
 TXT/TSV use source, translation and optional pixel width separated by actual TAB characters; escape internal newlines, tabs and backslashes as `\n`, `\t` and `\\`. CSV uses `Original,Translation,WidthPixels`, standard CSV quoting and real multiline cells; export includes a UTF-8 BOM. Flat JSON stores text pairs and loses per-row widths. Height/width offsets match SRL.ini, default text scale is 100%, default width is 620 px, and minimum horizontal scale is 70%; width 0 disables automatic fitting.
 
-Fonts and text are compressed losslessly and decoded into read-only memory. The current fixture shrank from 27.96 MiB to 8.72 MiB. If you add characters after unpacking a subset font, select a complete font again. Unsupported font formats and detected complex shaping in translations retain the full font.
+Fonts and text are compressed losslessly and decoded into read-only memory. The current fixture shrank from 27.96 MiB to 8.73 MiB. If you add characters after unpacking a subset font, select a complete font again. Unsupported font formats and detected complex shaping in translations retain the full font.
 
 Build with **Visual Studio 2022**, the **Desktop development with C++** workload and a **Windows SDK**, using `cmd /c build.cmd`. Run `python tests/regression.py` with Python 3; full regression needs the original EXE/assets in the parent directory and local `translation.txt`/`font.ttf`. Reports are generated under `tests/`. Other local fonts, binaries, settings and test output are ignored by Git; source, test scripts, licenses and `translation.txt` are retained. See [font notices](FONT-NOTICES.txt) and [OFL](FONT-LICENSE-OFL.txt). No separate source-code license has been assigned.
 
@@ -177,7 +179,7 @@ Only the original EXE with SHA256 `1c79a2d328d8ccd69765ac624b48f2317d80688c3dc74
 
 ### 1.10 가져오기 예제 및 EXE 표시
 
-번역 목록 가져오기에서 `1.10trans.txt` 또는 `1.10trans.csv`를 선택하세요. 중국어 간체 **16,808개 항목**이며 참고 번역 **13,084개**와 지형 효과·표시 문자열·줄바꿈·문자 폭 변형을 포함합니다. 이름과 같은 표기 용어는 유지됩니다. TXT는 UTF-8, CSV는 BOM 포함 UTF-8입니다. 시작 시 `translation.txt`, 없으면 `1.10trans.txt`를 읽습니다. 최소 배포판에는 TXT만 포함되고 CSV는 도구로 내보낼 수 있습니다.
+번역 목록 가져오기에서 `1.10trans.txt` 또는 `1.10trans.csv`를 선택하세요. 중국어 간체 **16,832개 항목**이며 참고 번역 **13,108개**와 지형 효과·표시 문자열·줄바꿈·문자 폭 변형을 포함합니다. 이름과 같은 표기 용어는 유지됩니다. TXT는 UTF-8, CSV는 BOM 포함 UTF-8입니다. 시작 시 `translation.txt`, 없으면 `1.10trans.txt`를 읽습니다. 최소 배포판에는 TXT만 포함되고 CSV는 도구로 내보낼 수 있습니다.
 
 생성된 게임 EXE의 읽기 전용 **`.mktrans`** PE 섹션에는 ASCII `moekuri_trans`, NUL, UTF-8 JSON이 들어 있습니다. 버전, 원본 EXE/번역 목록 SHA256, 항목 수, 글꼴 모드를 기록합니다. PE 뷰어 또는 `MoeKuriTools.exe --inspect translated.exe`로 확인하세요.
 
@@ -209,13 +211,13 @@ TXT/TSV는 실제 TAB으로 열을 나누고 내부 줄바꿈·탭·역슬래시
 
 VS 2022의 C++ 데스크톱 개발 구성 요소와 Windows SDK를 설치하고 `cmd /c build.cmd`로 빌드하세요. Python 3에서 `python tests/regression.py`를 실행할 수 있으며 전체 검증에는 상위 폴더의 원본 게임과 로컬 `translation.txt`·`font.ttf`가 필요합니다. 소스·테스트 스크립트·번역 원본은 Git에 보존하고 다른 로컬 글꼴·바이너리·설정·테스트 출력은 제외합니다. [글꼴 안내](FONT-NOTICES.txt)와 [OFL](FONT-LICENSE-OFL.txt)을 확인하세요. 별도의 소스 코드 라이선스는 아직 지정되지 않았습니다.
 
-현재 테스트 파일은 무손실 압축과 글꼴 최적화로 27.96 MiB에서 8.72 MiB로 줄었습니다. 형식·페이지 이동·글리프·로딩 검사는 통과했지만 실제 전투와 전체 스토리는 수동 검증이 필요합니다. 추출된 문자열도 검토해야 합니다.
+현재 테스트 파일은 무손실 압축과 글꼴 최적화로 27.96 MiB에서 8.73 MiB로 줄었습니다. 형식·페이지 이동·글리프·로딩 검사는 통과했지만 실제 전투와 전체 스토리는 수동 검증이 필요합니다. 추출된 문자열도 검토해야 합니다.
 
 ## fr-Français
 
 ### Exemple 1.10 et marqueur EXE
 
-Importer catalogue ouvre `1.10trans.txt` ou `1.10trans.csv` : **16 808 entrées en chinois simplifié**, dont les **13 084 entrées de référence**, effets de terrain et variantes d’affichage, de lignes et de largeur Unicode. Les noms crédités et termes identiques restent inchangés. TXT : UTF-8 ; CSV : UTF-8 avec BOM. Au démarrage, `translation.txt` est prioritaire, sinon `1.10trans.txt`. La Release minimale contient le TXT ; exporter le CSV depuis l’outil.
+Importer catalogue ouvre `1.10trans.txt` ou `1.10trans.csv` : **16 832 entrées en chinois simplifié**, dont les **13 108 entrées de référence**, effets de terrain et variantes d’affichage, de lignes et de largeur Unicode. Les noms crédités et termes identiques restent inchangés. TXT : UTF-8 ; CSV : UTF-8 avec BOM. Au démarrage, `translation.txt` est prioritaire, sinon `1.10trans.txt`. La Release minimale contient le TXT ; exporter le CSV depuis l’outil.
 
 Les EXE créés contiennent une section PE en lecture seule **`.mktrans`** : ASCII `moekuri_trans`, NUL puis JSON UTF-8 avec version, SHA256 du jeu original et du catalogue, nombre d’entrées et mode de police. Utiliser un lecteur PE ou `MoeKuriTools.exe --inspect translated.exe`.
 
@@ -247,13 +249,13 @@ TXT/TSV séparent les colonnes par une vraie tabulation ; les caractères intern
 
 Installez VS 2022 avec le développement desktop C++ et un Windows SDK, puis exécutez `cmd /c build.cmd`. Les tests utilisent Python 3 : `python tests/regression.py`. La régression complète nécessite le jeu original dans le dossier parent et `translation.txt`/`font.ttf` localement. Git conserve sources, scripts, licences et catalogue TXT ; les autres polices locales, binaires, paramètres et sorties de test sont ignorés. Consultez [les notices](FONT-NOTICES.txt) et [l’OFL](FONT-LICENSE-OFL.txt). Aucune licence distincte du code source n’a été attribuée.
 
-Le cas testé passe de 27,96 à 8,72 MiB avec réduction de police et compression sans perte. Les formats, pages, glyphes et sondes de chargement sont vérifiés ; les combats et l’histoire complète attendent une validation manuelle. Les chaînes extraites sont des candidates à examiner.
+Le cas testé passe de 27,96 à 8,73 MiB avec réduction de police et compression sans perte. Les formats, pages, glyphes et sondes de chargement sont vérifiés ; les combats et l’histoire complète attendent une validation manuelle. Les chaînes extraites sont des candidates à examiner.
 
 ## ja-日本語
 
 ### 1.10 辞書サンプルと EXE マーカー
 
-「辞書を読み込み」で `1.10trans.txt` または `1.10trans.csv` を選びます。簡体字中国語 **16,808 項目**で、参照辞書の **13,084 項目**と、地形の追加効果、表示ラベル、改行・文字幅の差を含みます。クレジット名と同形語は保持します。TXT は UTF-8、CSV は BOM 付き UTF-8。起動時は `translation.txt`、なければ `1.10trans.txt` を読みます。最小リリースには TXT のみを収録し、CSV はツールから出力できます。
+「辞書を読み込み」で `1.10trans.txt` または `1.10trans.csv` を選びます。簡体字中国語 **16,832 項目**で、参照辞書の **13,108 項目**と、地形の追加効果、表示ラベル、改行・文字幅の差を含みます。クレジット名と同形語は保持します。TXT は UTF-8、CSV は BOM 付き UTF-8。起動時は `translation.txt`、なければ `1.10trans.txt` を読みます。最小リリースには TXT のみを収録し、CSV はツールから出力できます。
 
 生成したゲーム EXE の読み取り専用 PE セクション **`.mktrans`** には ASCII `moekuri_trans`、NUL、UTF-8 JSON を格納します。バージョン、原版 EXE と辞書の SHA256、項目数、フォントモードを記録します。PE ビューアーまたは `MoeKuriTools.exe --inspect translated.exe` で確認できます。
 
@@ -285,13 +287,13 @@ TXT/TSV の区切りは実際の TAB で、内部の改行・TAB・バックス�
 
 VS 2022 の C++ デスクトップ開発と Windows SDK を用意し、`cmd /c build.cmd` でビルドします。Python 3 の `python tests/regression.py` で検証できます。完全な回帰検証には親ディレクトリの原版ゲームと、ローカルの `translation.txt`・`font.ttf` が必要です。Git はソース、検証スクリプト、辞書とライセンスを保持し、その他のローカルフォント、実行ファイル、設定、検証出力を除外します。[フォント通知](FONT-NOTICES.txt)と [OFL](FONT-LICENSE-OFL.txt)を参照してください。ソースコード独自のライセンスはまだ指定されていません。
 
-現在の検証例はフォント最適化と可逆圧縮で 27.96 MiB から 8.72 MiB になりました。形式、ページ移動、字形、ロード時の検証は通過しています。実際の戦闘と全シナリオの目視確認は未完了で、抽出文字列も候補として確認が必要です。
+現在の検証例はフォント最適化と可逆圧縮で 27.96 MiB から 8.73 MiB になりました。形式、ページ移動、字形、ロード時の検証は通過しています。実際の戦闘と全シナリオの目視確認は未完了で、抽出文字列も候補として確認が必要です。
 
 ## it-Italiano
 
 ### Esempio 1.10 e marcatore EXE
 
-Importa catalogo apre `1.10trans.txt` o `1.10trans.csv`: **16.808 voci in cinese semplificato**, incluse le **13.084 voci di riferimento**, effetti del terreno e varianti di visualizzazione, righe e larghezza Unicode. Crediti e termini identici sono preservati. TXT: UTF-8; CSV: UTF-8 con BOM. All’avvio si usa `translation.txt`, altrimenti `1.10trans.txt`. La release minima include solo il TXT; il CSV si esporta dallo strumento.
+Importa catalogo apre `1.10trans.txt` o `1.10trans.csv`: **16.832 voci in cinese semplificato**, incluse le **13.108 voci di riferimento**, effetti del terreno e varianti di visualizzazione, righe e larghezza Unicode. Crediti e termini identici sono preservati. TXT: UTF-8; CSV: UTF-8 con BOM. All’avvio si usa `translation.txt`, altrimenti `1.10trans.txt`. La release minima include solo il TXT; il CSV si esporta dallo strumento.
 
 Gli EXE generati hanno una sezione PE di sola lettura **`.mktrans`**: ASCII `moekuri_trans`, NUL, poi JSON UTF-8 con versione, SHA256 dell’EXE originale e del catalogo, numero di voci e modalità font. Usa un lettore PE o `MoeKuriTools.exe --inspect translated.exe`.
 
@@ -323,13 +325,13 @@ TXT/TSV usano vere tabulazioni tra colonne e `\n`, `\t`, `\\` nel testo. CSV usa
 
 Installa VS 2022 con sviluppo desktop C++ e Windows SDK; compila con `cmd /c build.cmd`. Esegui `python tests/regression.py` con Python 3, preparando il gioco originale nella cartella superiore e `translation.txt`/`font.ttf` nel progetto. Git mantiene sorgenti, test, licenze e TXT, escludendo altri font locali, binari, impostazioni e risultati. Vedi [avvisi del font](FONT-NOTICES.txt) e [OFL](FONT-LICENSE-OFL.txt). Non è stata assegnata una licenza separata al codice sorgente.
 
-Il caso verificato è passato da 27,96 a 8,72 MiB grazie ai glifi ridotti e alla compressione senza perdita. Formati, pagine, glifi e caricamento sono verificati; battaglie e storia completa richiedono ancora una verifica manuale. Le stringhe estratte sono candidate da esaminare.
+Il caso verificato è passato da 27,96 a 8,73 MiB grazie ai glifi ridotti e alla compressione senza perdita. Formati, pagine, glifi e caricamento sono verificati; battaglie e storia completa richiedono ancora una verifica manuale. Le stringhe estratte sono candidate da esaminare.
 
 ## de-Deutsch
 
 ### 1.10-Importbeispiel und EXE-Markierung
 
-Katalog importieren öffnet `1.10trans.txt` oder `1.10trans.csv`: **16.808 Einträge in vereinfachtem Chinesisch**, einschließlich aller **13.084 Referenzeinträge**, Geländeeffekte sowie Anzeige-, Zeilen- und Unicode-Breitenvarianten. Credits und gleich geschriebene Begriffe bleiben erhalten. TXT ist UTF-8, CSV UTF-8 mit BOM. Beim Start gilt `translation.txt`, sonst `1.10trans.txt`. Das minimale Release enthält nur TXT; CSV lässt sich im Werkzeug exportieren.
+Katalog importieren öffnet `1.10trans.txt` oder `1.10trans.csv`: **16.832 Einträge in vereinfachtem Chinesisch**, einschließlich aller **13.108 Referenzeinträge**, Geländeeffekte sowie Anzeige-, Zeilen- und Unicode-Breitenvarianten. Credits und gleich geschriebene Begriffe bleiben erhalten. TXT ist UTF-8, CSV UTF-8 mit BOM. Beim Start gilt `translation.txt`, sonst `1.10trans.txt`. Das minimale Release enthält nur TXT; CSV lässt sich im Werkzeug exportieren.
 
 Erzeugte EXEs enthalten den schreibgeschützten PE-Abschnitt **`.mktrans`**: ASCII `moekuri_trans`, NUL, dann UTF-8-JSON mit Version, SHA256 von Original-EXE und Katalog, Eintragszahl und Schriftmodus. Prüfung mit PE-Viewer oder `MoeKuriTools.exe --inspect translated.exe`.
 
@@ -361,13 +363,13 @@ TXT/TSV verwenden echte Tabulatoren als Trenner und `\n`, `\t`, `\\` im Text. CS
 
 Installieren Sie VS 2022 mit C++-Desktopentwicklung und Windows SDK, dann `cmd /c build.cmd`. Python 3 führt `python tests/regression.py` aus. Dafür werden Originalspiel im übergeordneten Ordner sowie lokale `translation.txt`/`font.ttf` benötigt. Git behält Quelltexte, Tests, Lizenzen und TXT; andere lokale Schriften, Programme, Einstellungen und Ergebnisse werden ignoriert. Siehe [Schrifthinweise](FONT-NOTICES.txt) und [OFL](FONT-LICENSE-OFL.txt). Eine separate Quellcode-Lizenz wurde noch nicht festgelegt.
 
-Der geprüfte Fall schrumpfte durch Schriftoptimierung und verlustfreie Kompression von 27,96 auf 8,72 MiB. Formate, Seitenwechsel, Glyphen und Ladeprüfungen sind verifiziert; echte Kämpfe und die komplette Geschichte benötigen noch manuelle Abnahme. Extrahierte Zeichenfolgen müssen geprüft werden.
+Der geprüfte Fall schrumpfte durch Schriftoptimierung und verlustfreie Kompression von 27,96 auf 8,73 MiB. Formate, Seitenwechsel, Glyphen und Ladeprüfungen sind verifiziert; echte Kämpfe und die komplette Geschichte benötigen noch manuelle Abnahme. Extrahierte Zeichenfolgen müssen geprüft werden.
 
 ## ru-Русский
 
 ### Пример 1.10 и метка EXE
 
-Импорт словаря открывает `1.10trans.txt` или `1.10trans.csv`: **16 808 записей на упрощённом китайском**, включая все **13 084 исходную запись**, эффекты местности, подписи и варианты строк/ширины Unicode. Имена в титрах и одинаковые термины сохраняются. TXT — UTF-8, CSV — UTF-8 с BOM. При запуске используется `translation.txt`, иначе `1.10trans.txt`. Минимальный выпуск содержит только TXT; CSV экспортируется инструментом.
+Импорт словаря открывает `1.10trans.txt` или `1.10trans.csv`: **16 832 записей на упрощённом китайском**, включая все **13 108 исходную запись**, эффекты местности, подписи и варианты строк/ширины Unicode. Имена в титрах и одинаковые термины сохраняются. TXT — UTF-8, CSV — UTF-8 с BOM. При запуске используется `translation.txt`, иначе `1.10trans.txt`. Минимальный выпуск содержит только TXT; CSV экспортируется инструментом.
 
 Созданный EXE содержит PE-секцию только для чтения **`.mktrans`**: ASCII `moekuri_trans`, NUL и JSON UTF-8 с версией, SHA256 оригинального EXE и словаря, количеством записей и режимом шрифта. Проверка: просмотрщик PE или `MoeKuriTools.exe --inspect translated.exe`.
 
@@ -399,13 +401,13 @@ TXT/TSV разделяют поля настоящей табуляцией; в�
 
 Установите VS 2022 с разработкой настольных приложений C++ и Windows SDK; сборка: `cmd /c build.cmd`. Проверки Python 3: `python tests/regression.py`; нужны оригинальная игра в родительской папке и локальные `translation.txt`/`font.ttf`. Git сохраняет исходники, скрипты, лицензии и TXT, исключая другие локальные шрифты, бинарные файлы, настройки и результаты. См. [уведомления о шрифте](FONT-NOTICES.txt) и [OFL](FONT-LICENSE-OFL.txt). Отдельная лицензия исходного кода пока не назначена.
 
-Проверенный пример уменьшился с 27,96 до 8,72 MiB благодаря оптимизации глифов и сжатию без потерь. Форматы, переходы, глифы и загрузка проверены; реальные бои и полный сюжет требуют ручной проверки. Извлечённые строки являются кандидатами для просмотра.
+Проверенный пример уменьшился с 27,96 до 8,73 MiB благодаря оптимизации глифов и сжатию без потерь. Форматы, переходы, глифы и загрузка проверены; реальные бои и полный сюжет требуют ручной проверки. Извлечённые строки являются кандидатами для просмотра.
 
 ## ar-العربية
 
 ### مثال 1.10 وعلامة EXE
 
-افتح `1.10trans.txt` أو `1.10trans.csv` عبر استيراد القاموس. يحتوي المثال على **16,808 نصًا بالصينية المبسطة**، ويغطي **13,084 نصًا مرجعيًا**، إضافةً إلى تأثيرات التضاريس والتسميات واختلافات الأسطر وعرض Unicode. تُحفظ أسماء الاعتمادات والمصطلحات المتطابقة. TXT بترميز UTF-8 وCSV بترميز UTF-8 مع BOM. يبدأ بقراءة `translation.txt` ثم `1.10trans.txt` عند غيابه. الإصدار المصغّر يتضمن TXT فقط؛ يمكن تصدير CSV بالأداة.
+افتح `1.10trans.txt` أو `1.10trans.csv` عبر استيراد القاموس. يحتوي المثال على **16,832 نصًا بالصينية المبسطة**، ويغطي **13,108 نصًا مرجعيًا**، إضافةً إلى تأثيرات التضاريس والتسميات واختلافات الأسطر وعرض Unicode. تُحفظ أسماء الاعتمادات والمصطلحات المتطابقة. TXT بترميز UTF-8 وCSV بترميز UTF-8 مع BOM. يبدأ بقراءة `translation.txt` ثم `1.10trans.txt` عند غيابه. الإصدار المصغّر يتضمن TXT فقط؛ يمكن تصدير CSV بالأداة.
 
 يحتوي EXE الناتج على قسم PE للقراءة فقط **`.mktrans`**: ASCII `moekuri_trans` ثم NUL ثم JSON بترميز UTF-8 يسجّل الإصدار وSHA256 للعبة الأصلية والقاموس وعدد النصوص ووضع الخط. افحصه بعارض PE أو `MoeKuriTools.exe --inspect translated.exe`.
 
@@ -437,13 +439,13 @@ TXT/TSV разделяют поля настоящей табуляцией; в�
 
 ثبّت VS 2022 مع تطوير تطبيقات سطح المكتب C++ وWindows SDK، ثم نفّذ `cmd /c build.cmd`. للاختبار باستخدام Python 3: `python tests/regression.py`، مع اللعبة الأصلية في المجلد الأب وملفي `translation.txt` و`font.ttf` محليًا. يحتفظ Git بالمصادر والاختبارات والتراخيص وقاموس TXT، ويستبعد الخطوط المحلية الأخرى والبرامج والإعدادات والنتائج. راجع [إشعارات الخط](FONT-NOTICES.txt) و[OFL](FONT-LICENSE-OFL.txt). لم يُحدّد ترخيص منفصل للشيفرة المصدرية بعد.
 
-انخفض المثال المختبَر من 27.96 إلى 8.72 MiB عبر تحسين الخط والضغط دون فقدان. تم التحقق من الصيغ والصفحات والحروف والتحميل؛ ما زالت المعارك والقصة الكاملة بحاجة إلى اختبار يدوي، والنصوص المستخرجة بحاجة إلى مراجعة.
+انخفض المثال المختبَر من 27.96 إلى 8.73 MiB عبر تحسين الخط والضغط دون فقدان. تم التحقق من الصيغ والصفحات والحروف والتحميل؛ ما زالت المعارك والقصة الكاملة بحاجة إلى اختبار يدوي، والنصوص المستخرجة بحاجة إلى مراجعة.
 
 ## es-Español
 
 ### Ejemplo 1.10 y marca EXE
 
-Importar catálogo abre `1.10trans.txt` o `1.10trans.csv`: **16.808 entradas en chino simplificado**, incluidas las **13.084 de referencia**, efectos del terreno y variantes de etiquetas, líneas y anchura Unicode. Se conservan créditos y términos idénticos. TXT usa UTF-8; CSV, UTF-8 con BOM. Al iniciar se carga `translation.txt`, o `1.10trans.txt` si falta. La versión mínima incluye solo TXT; el CSV se exporta desde la herramienta.
+Importar catálogo abre `1.10trans.txt` o `1.10trans.csv`: **16.832 entradas en chino simplificado**, incluidas las **13.108 de referencia**, efectos del terreno y variantes de etiquetas, líneas y anchura Unicode. Se conservan créditos y términos idénticos. TXT usa UTF-8; CSV, UTF-8 con BOM. Al iniciar se carga `translation.txt`, o `1.10trans.txt` si falta. La versión mínima incluye solo TXT; el CSV se exporta desde la herramienta.
 
 Los EXE generados contienen una sección PE de solo lectura **`.mktrans`**: ASCII `moekuri_trans`, NUL y JSON UTF-8 con versión, SHA256 del EXE original y del catálogo, número de entradas y modo de fuente. Usa un visor PE o `MoeKuriTools.exe --inspect translated.exe`.
 
@@ -475,4 +477,4 @@ TXT/TSV separan columnas con tabuladores reales y usan `\n`, `\t`, `\\` dentro d
 
 Instala VS 2022 con desarrollo de escritorio C++ y Windows SDK; compila con `cmd /c build.cmd`. Ejecuta `python tests/regression.py` con Python 3, preparando el juego original en la carpeta superior y `translation.txt`/`font.ttf` localmente. Git conserva código, scripts, licencias y TXT; ignora otras fuentes locales, binarios, ajustes y resultados. Consulta [avisos de fuente](FONT-NOTICES.txt) y [OFL](FONT-LICENSE-OFL.txt). Todavía no se ha asignado una licencia independiente al código fuente.
 
-El caso probado bajó de 27,96 a 8,72 MiB mediante reducción de glifos y compresión sin pérdida. Se verificaron formatos, páginas, glifos y carga; las batallas reales y la historia completa aún requieren revisión manual. Los textos extraídos son candidatos que deben revisarse.
+El caso probado bajó de 27,96 a 8,73 MiB mediante reducción de glifos y compresión sin pérdida. Se verificaron formatos, páginas, glifos y carga; las batallas reales y la historia completa aún requieren revisión manual. Los textos extraídos son candidatos que deben revisarse.

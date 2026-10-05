@@ -2,10 +2,10 @@
   "game_version": "JP 1.10",
   "game_sha256": "1c79a2d328d8ccd69765ac624b48f2317d80688c3dc7439ee3c23fc1fc05f847",
   "reference_dictionary": "mods/trans/localization/jp-1.10/translate.json",
-  "reference_sha256": "0d4c19bd1cb59b046e9d4ae0ffa7cd5cd80a73fde887b60ffb9e4e479f3557fd",
+  "reference_sha256": "1e03dc84ed031306d8aef4da9827db0b31f89dcb6647dc842a47f6c4ffbbf374",
   "previous_rows": 13076,
-  "rows": 16808,
-  "added_rows": 3732,
+  "rows": 16832,
+  "added_rows": 3756,
   "added_by_category": {
     "reference_110": 5,
     "terrain_extra_effect": 7,
@@ -17,18 +17,19 @@
     "unicode_width_or_line_ending_alias": 1137,
     "unambiguous_story_line": 2553,
     "story_typewriter_line": 8,
-    "dynamic_tooltip_template": 3
+    "dynamic_tooltip_template": 3,
+    "dynamic_menu_template": 24
   },
-  "reference_rows_covered": 13084,
+  "reference_rows_covered": 13108,
   "terrain_extra_effects_covered": 8,
-  "preserved_source_rows": 550,
+  "preserved_source_rows": 552,
   "empty_targets": 0,
   "ambiguous_line_aliases_skipped": 0,
-  "sample_txt_sha256": "e5da9a864c7c4070b195faaccaaf81ce34ad0eaa11b7a245bd047068424214f7",
+  "sample_txt_sha256": "18d885b7c1358cdbf0e71acd05d2632047289ddb24060197778ba4109e6e6390",
   "csv_encoding": "UTF-8 with BOM",
   "scope": "Text dictionary; sprite images are separate resources. Runtime/gameplay acceptance is tested separately.",
   "translation_overrides_file": "catalog-overrides.json",
   "reference_rows_overridden": 0,
-  "reference_rows_matched": 13084,
+  "reference_rows_matched": 13108,
   "protected_script_identifiers": 17
 }

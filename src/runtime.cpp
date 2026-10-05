@@ -83,15 +83,34 @@ static bool storyPath(const wchar_t* path){
         return path[n-4]==L'.'&&(path[n-3]==L'd'||path[n-3]==L'D')&&(path[n-2]==L'a'||path[n-2]==L'A')&&(path[n-1]==L't'||path[n-1]==L'T');
     }return false;
 }
+// Same display-column whitelist as the MOD's resource.hpp. IDs and numeric
+// gameplay fields retain their original CSV bytes and column positions.
+static LONG csvKind(const wchar_t* path){
+    if(!path)return 0;const wchar_t* names[]={L"data/csv/w_para.csv",L"data/csv/n_para.csv",L"data/csv/h_para.csv",L"data/csv/mj_para.csv",L"data/csv/t_para.csv",L"data/csv/s_para.csv"};int n=len(path);if(n>=4096)return 0;
+    for(int kind=0;kind<6;++kind){int count=len(names[kind]);if(n<count||(n>count&&path[n-count-1]!=L'/'&&path[n-count-1]!=L'\\'))continue;int i=0;for(;i<count;++i){wchar_t c=path[n-count+i];if(c==L'\\')c=L'/';if(c>=L'A'&&c<=L'Z')c+=L'a'-L'A';if(c!=names[kind][i])break;}if(i==count)return kind+3;}return 0;
+}
+static bool csvDisplayColumn(LONG kind,int column){return kind==3?(column==1||column==15):kind==4?(column==1||column==5):kind==5?column==2:kind==6?column==1:kind==7?(column==0||column==19||column==20||column==21):kind==8;}
+static bool translateCsvLine(wchar_t* text,int capacity,LONG kind){
+    if(!text||capacity<2)return false;int full=len(text,capacity);if(full>=capacity||full>=4096)return false;int n=full;while(n&&(text[n-1]==L'\r'||text[n-1]==L'\n'))--n;
+    wchar_t output[4096],field[4096];int p=0,o=0,column=0;bool changed=false;
+    do{int start=p,used=0;bool quoted=p<n&&text[p]==L'"';if(quoted){++p;bool closed=false;while(p<n){wchar_t c=text[p++];if(c==L'"'){if(p<n&&text[p]==L'"'){++p;field[used++]=c;}else{closed=true;break;}}else field[used++]=c;}if(!closed||(p<n&&text[p]!=L','))return false;}else while(p<n&&text[p]!=L',')field[used++]=text[p++];field[used]=0;
+        const Entry* e=csvDisplayColumn(kind,column)?find(field,used):0;bool replace=e&&e->targetLen&&e->target[0]!=L'@';if(replace)for(int i=0;i<e->targetLen;++i)if(e->target[i]==L'\r'||e->target[i]==L'\n'){replace=false;break;}
+        if(replace){bool quote=quoted;for(int i=0;i<e->targetLen;++i)if(e->target[i]==L','||e->target[i]==L'"')quote=true;int size=e->targetLen+(quote?2:0);if(quote)for(int i=0;i<e->targetLen;++i)if(e->target[i]==L'"')++size;if(size>=capacity-o||size>=4096-o)return false;if(quote)output[o++]=L'"';for(int i=0;i<e->targetLen;++i){output[o++]=e->target[i];if(quote&&e->target[i]==L'"')output[o++]=L'"';}if(quote)output[o++]=L'"';changed=true;}
+        else{if(p-start>=capacity-o||p-start>=4096-o)return false;while(start<p)output[o++]=text[start++];}
+        ++column;if(p>=n)break;if(o+1>=capacity||o+1>=4096)return false;output[o++]=text[p++];
+    }while(p<=n);
+    if(!changed||o+full-n>=capacity||o+full-n>=4096)return false;for(int i=n;i<full;++i)output[o++]=text[i];output[o]=0;for(int i=0;i<=o;++i)text[i]=output[i];return true;
+}
 static int __cdecl openHook(const wchar_t* path,int flag,int asyncFlag){
     int handle=originalOpen(path,flag,asyncFlag);if(handle<=0)return handle;
     for(int i=0;i<64;++i)InterlockedCompareExchange(&resourceStates[i].handle,0,handle);
-    LONG kind=encyclopediaPath(path)?1:storyPath(path)?2:0;
+    LONG kind=encyclopediaPath(path)?1:storyPath(path)?2:csvKind(path);
     if(kind){DWORD slot=(DWORD)InterlockedIncrement(&resourceSlot);ResourceState* state=resourceStates+(slot%64);InterlockedExchange(&state->handle,0);state->kind=kind;state->dialogue=0;InterlockedExchange(&state->handle,handle);}return handle;
 }
 static int __cdecl getsHook(wchar_t* text,int capacity,int handle){
     bool probing=resourceProbeThread&&GetCurrentThreadId()==resourceProbeThread;if(probing)resourceProbeEntry=0;int result=originalGets(text,capacity,handle);if(result<0)return result;
     ResourceState* state=0;for(int i=0;i<64;++i)if(resourceStates[i].handle==handle){state=resourceStates+i;break;}if(!state)return result;
+    if(state->kind>=3){if(!state->dialogue++){return result;}if(translateCsvLine(text,capacity,state->kind)){InterlockedIncrement(&resourceTranslatedCount);return len(text,capacity);}return result;}
     if(state->kind==2){if(text&&text[0]==L'#'){state->dialogue=len(text)>=5&&same(text,L"#txt@",5);return result;}if(!state->dialogue)return result;}
     const Entry* e=translateReadLine(text,capacity,state->kind==2);if(!e)return result;InterlockedIncrement(&resourceTranslatedCount);if(probing)resourceProbeEntry=e;return len(text,capacity);
 }
@@ -183,6 +202,16 @@ static bool hasArgument(const wchar_t* key){const wchar_t* s=GetCommandLineW();f
 static void writeReport(const wchar_t* path,const char* s){HANDLE f=CreateFileW(path,GENERIC_WRITE,0,0,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,0);if(f!=INVALID_HANDLE_VALUE){DWORD wrote;DWORD n=0;while(s[n])++n;WriteFile(f,s,n,&wrote,0);CloseHandle(f);}}
 static char* number(char* p,DWORD n){char digits[16];unsigned used=0;do{digits[used++]=(char)('0'+n%10);n/=10;}while(n);while(used)*p++=digits[--used];return p;}
 static char* literal(char* p,const char* s){while(*s)*p++=*s++;return p;}
+static DWORD WINAPI csvTest(void*){
+    for(int i=0;i<100&&!*readerInitialized;++i)Sleep(100);const wchar_t* names[]={L"w_para",L"n_para",L"h_para",L"mj_para",L"t_para",L"s_para"};DWORD rows=0,changed=0;bool ok=*readerInitialized!=0;
+    for(int file=0;file<6&&ok;++file){wchar_t path[128]=L"data/csv/",rawPath[128]=L"cn-",translatedPath[128]=L"cn-";int n=len(names[file]);for(int i=0;i<n;++i){path[9+i]=i<(file==3?2:1)?names[file][i]-(L'a'-L'A'):names[file][i];rawPath[3+i]=names[file][i];translatedPath[3+i]=names[file][i];}const wchar_t* tail=L".csv";for(int i=0;i<5;++i)path[9+n+i]=tail[i];tail=L"-original.csv";for(int i=0;i<=len(tail);++i)rawPath[3+n+i]=tail[i];tail=L"-translated.csv";for(int i=0;i<=len(tail);++i)translatedPath[3+n+i]=tail[i];
+        int translated=-1;for(int attempt=0;attempt<100;++attempt){translated=openHook(path,0,0);if(translated>0)break;Sleep(100);}int raw=originalOpen(path,0,0);HANDLE rawFile=CreateFileW(rawPath,GENERIC_WRITE,0,0,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,0),translatedFile=CreateFileW(translatedPath,GENERIC_WRITE,0,0,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,0);if(translated<=0||raw<=0||rawFile==INVALID_HANDLE_VALUE||translatedFile==INVALID_HANDLE_VALUE){ok=false;if(rawFile!=INVALID_HANDLE_VALUE)CloseHandle(rawFile);if(translatedFile!=INVALID_HANDLE_VALUE)CloseHandle(translatedFile);break;}
+        WORD bom=0xfeff;DWORD wrote;WriteFile(rawFile,&bom,2,&wrote,0);WriteFile(translatedFile,&bom,2,&wrote,0);wchar_t a[1024],b[1024];
+        for(int row=0;row<4096;++row){int x=originalGets(a,1024,raw),y=getsHook(b,1024,translated);if(x<0||y<0){ok=ok&&(x<0&&y<0)&&row>1;break;}++rows;if(x!=y||!same(a,b,x))++changed;ok=ok&&WriteFile(rawFile,a,len(a)*2,&wrote,0)&&WriteFile(translatedFile,b,len(b)*2,&wrote,0);const wchar_t newline[]=L"\r\n";WriteFile(rawFile,newline,4,&wrote,0);WriteFile(translatedFile,newline,4,&wrote,0);if(row==4095)ok=false;}
+        CloseHandle(rawFile);CloseHandle(translatedFile);
+    }
+    ok=ok&&rows>1500&&changed>500;char report[256];char* p=literal(report,"{\"csv_rows\":");p=number(p,rows);p=literal(p,",\"translated_rows\":");p=number(p,changed);p=literal(p,",\"passed\":");p=literal(p,ok?"true":"false");p=literal(p,"}\n");*p=0;writeReport(L"cn-csv.json",report);ExitProcess(ok?0:74);return 0;
+}
 static bool progressiveStoryTest(const wchar_t* text,int n);
 static DWORD WINAPI descriptionTest(void*){
     for(int i=0;i<100&&!*readerInitialized;++i)Sleep(100);resourceProbeThread=GetCurrentThreadId();
@@ -227,10 +256,10 @@ static bool runtimeTest(){
     originalDraw=native;drawCount=widthCount=translatedCount=0;return ok;
 }
 static bool tooltipTest(){
-    const wchar_t* input[]={L"[氷の矢] 氷属性 魔法",L"攻撃値60  命中率100  特攻率5  射程2  範囲1  コスト2",L"攻撃値73 命中率92 特攻率17 射程3 範囲6 コスト4",L"　ﾌﾞﾗﾌﾏｰ　",L"[氷の矢] 氷属性 魔法\r\n攻撃値60  命中率100  特攻率5  射程2  範囲1  コスト2"};
-    const wchar_t* expected[]={L"[冰之箭] 冰属性（魔法）",L"攻击值60  命中率100  暴击率5  射程2  范围1  消耗2",L"攻击值73 命中率92 暴击率17 射程3 范围6 消耗4",L"　布拉玛　",L"[冰之箭] 冰属性（魔法）\r\n攻击值60  命中率100  暴击率5  射程2  范围1  消耗2"};
+    const wchar_t* input[]={L"[氷の矢] 氷属性 魔法",L"攻撃値60  命中率100  特攻率5  射程2  範囲1  コスト2",L"攻撃値73 命中率92 特攻率17 射程3 範囲6 コスト4",L"　ﾌﾞﾗﾌﾏｰ　",L"[氷の矢] 氷属性 魔法\r\n攻撃値60  命中率100  特攻率5  射程2  範囲1  コスト2",L"修練値を20消費して防御力の基礎値+1",L"修練値を257消費してSPの基礎値+1(基礎値5でSP1アップ)",L"[修練値を20消費して防御力の基礎値+1]",L"攻撃80",L"修練値8",L"召コ3"};
+    const wchar_t* expected[]={L"[冰之箭] 冰属性（魔法）",L"攻击值60  命中率100  暴击率5  射程2  范围1  消耗2",L"攻击值73 命中率92 暴击率17 射程3 范围6 消耗4",L"　布拉玛　",L"[冰之箭] 冰属性（魔法）\r\n攻击值60  命中率100  暴击率5  射程2  范围1  消耗2",L"消耗20修炼值，使防御力基础值+1",L"消耗257修炼值，使SP基础值+1（基础值每增加5，SP增加1）",L"[消耗20修炼值，使防御力基础值+1]",L"攻击80",L"修炼值8",L"召唤耗SP3"};
     Backend native=originalDraw;originalDraw=mockBackend;bool ok=true;
-    for(int i=0;i<5&&ok;++i)for(int draw=0;draw<=1&&ok;++draw){drawHook(draw,0,0,0,1.0,1.0,input[i],0,0,0,1,0,0,len(input[i]),0,0);ok=testLength==len(expected[i])&&same(testRenderedCopy,expected[i],testLength);if(!ok){char report[16384];char* p=literal(report,"tooltip case ");p=number(p,i);p=literal(p,"\nactual:\n");int copied=WideCharToMultiByte(CP_UTF8,0,testRenderedCopy,-1,p,12000,0,0);if(copied>0)p+=copied-1;p=literal(p,"\nexpected:\n");copied=WideCharToMultiByte(CP_UTF8,0,expected[i],-1,p,2000,0,0);if(copied>0)p+=copied-1;*p=0;writeReport(L"cn-tooltip-failure.txt",report);}}
+    for(int i=0;i<sizeof(input)/sizeof(input[0])&&ok;++i)for(int draw=0;draw<=1&&ok;++draw){drawHook(draw,0,0,0,1.0,1.0,input[i],0,0,0,1,0,0,len(input[i]),0,0);ok=testLength==len(expected[i])&&same(testRenderedCopy,expected[i],testLength);if(!ok){char report[16384];char* p=literal(report,"tooltip case ");p=number(p,i);p=literal(p,"\nactual:\n");int copied=WideCharToMultiByte(CP_UTF8,0,testRenderedCopy,-1,p,12000,0,0);if(copied>0)p+=copied-1;p=literal(p,"\nexpected:\n");copied=WideCharToMultiByte(CP_UTF8,0,expected[i],-1,p,2000,0,0);if(copied>0)p+=copied-1;*p=0;writeReport(L"cn-tooltip-failure.txt",report);}}
     wchar_t untouched[128];ok=ok&&!translateText(L"文中の氷の矢は未訳",len(L"文中の氷の矢は未訳"),untouched,128,0,0)&&!translateText(L"@ブラリボン",len(L"@ブラリボン"),untouched,128,0,0);
     originalDraw=native;return ok;
 }
@@ -271,4 +300,5 @@ extern "C" __declspec(dllexport) void __cdecl CNInit(const CNHeader* header){
     }
     if(hasArgument(L"--cn-live-test")){HANDLE thread=CreateThread(0,0,liveTest,0,0,0);if(!thread)fail();CloseHandle(thread);}
     if(hasArgument(L"--cn-description-test")){HANDLE thread=CreateThread(0,0,descriptionTest,0,0,0);if(!thread)fail();CloseHandle(thread);}
+    if(hasArgument(L"--cn-csv-test")){HANDLE thread=CreateThread(0,0,csvTest,0,0,0);if(!thread)fail();CloseHandle(thread);}
 }
