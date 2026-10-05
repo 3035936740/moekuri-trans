@@ -1,0 +1,31 @@
+{
+  "game_version": "JP 1.10",
+  "game_sha256": "1c79a2d328d8ccd69765ac624b48f2317d80688c3dc7439ee3c23fc1fc05f847",
+  "reference_dictionary": "mods/trans/localization/jp-1.10/translate.json",
+  "reference_sha256": "8c34b27fa69aaa2fd8e85d6830e87b0b421e312f5b9d8795b58b27615b4c38c9",
+  "previous_rows": 13076,
+  "rows": 16797,
+  "added_rows": 3721,
+  "added_by_category": {
+    "reference_110": 5,
+    "terrain_extra_effect": 7,
+    "story_speaker": 1,
+    "preserved_unknown_speaker": 1,
+    "preserved_artist_credit": 4,
+    "reviewed_story_line": 8,
+    "exe_display_label": 5,
+    "unicode_width_or_line_ending_alias": 1137,
+    "unambiguous_story_line": 2553
+  },
+  "reference_rows_covered": 13081,
+  "terrain_extra_effects_covered": 8,
+  "preserved_source_rows": 533,
+  "empty_targets": 0,
+  "ambiguous_line_aliases_skipped": 0,
+  "sample_txt_sha256": "fbfecd302575cc6f5f3af0bbc10b1506e73f97b60fbe9ab3cab2707b92620953",
+  "csv_encoding": "UTF-8 with BOM",
+  "scope": "Text dictionary; sprite images are separate resources. Runtime/gameplay acceptance is tested separately.",
+  "translation_overrides_file": "catalog-overrides.json",
+  "reference_rows_overridden": 4,
+  "reference_rows_matched": 13077
+}

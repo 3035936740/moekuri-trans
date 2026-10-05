@@ -1,0 +1,98 @@
+name: Windows build and release
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing v-prefixed tag to publish; leave empty to build only'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-${{ github.event_name }}-${{ inputs.tag || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate requested tag
+        if: github.event_name == 'workflow_dispatch' && inputs.tag != ''
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          if ($env:RELEASE_TAG -notmatch '^v[A-Za-z0-9][A-Za-z0-9._-]*$') { throw 'Use a v-prefixed version tag' }
+          git show-ref --verify --quiet "refs/tags/$env:RELEASE_TAG"
+          if ($LASTEXITCODE -ne 0) { throw 'Release tag does not exist' }
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - name: Compile x86 runtime and GUI, check DLL dependencies, package
+        shell: pwsh
+        run: ./build.ps1 -Package
+      - name: Verify release contents and isolated tool startup
+        run: python tests/ci_smoke.py --package
+      - name: Verify TXT and CSV import examples
+        run: python tests/sample_marker.py
+      - uses: actions/upload-artifact@v7
+        with:
+          name: moekuri-trans-windows-x86
+          path: |
+            dist/moekuri-trans-windows-x86.zip
+            dist/font.ttf
+            dist/SHA256SUMS.txt
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+          include-hidden-files: false
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.tag != '')
+    runs-on: windows-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: moekuri-trans-windows-x86
+          path: dist
+      - name: Publish verified assets only
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          $expected = @('moekuri-trans-windows-x86.zip', 'font.ttf', 'SHA256SUMS.txt')
+          $actual = @(Get-ChildItem -LiteralPath dist -File | ForEach-Object { $_.Name })
+          if (@(Compare-Object ($expected | Sort-Object) ($actual | Sort-Object)).Count -ne 0) { throw 'Unexpected release assets' }
+          $checksums = foreach ($name in @('moekuri-trans-windows-x86.zip', 'font.ttf')) {
+            $hash = (Get-FileHash -LiteralPath (Join-Path dist $name) -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $name"
+          }
+          $lines = @(Get-Content -LiteralPath dist/SHA256SUMS.txt)
+          if ($lines.Count -ne $checksums.Count -or @((Compare-Object $checksums $lines)).Count -ne 0) { throw 'Checksum mismatch' }
+          gh release view $env:RELEASE_TAG --json tagName *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $env:RELEASE_TAG dist/moekuri-trans-windows-x86.zip dist/font.ttf dist/SHA256SUMS.txt --clobber
+          } else {
+            gh release create $env:RELEASE_TAG dist/moekuri-trans-windows-x86.zip dist/font.ttf dist/SHA256SUMS.txt --verify-tag --generate-notes --title "moekuri-trans $env:RELEASE_TAG"
+          }
+          if ($LASTEXITCODE -ne 0) { throw 'GitHub Release publication failed' }

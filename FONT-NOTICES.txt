@@ -1,0 +1,29 @@
+moekuri-trans — 字体来源与致谢 / Font acknowledgements
+
+项目默认字体：小赖字体 / Xiaolai Font（本地 font.ttf）。
+Default project font: Xiaolai Font. The local source font remains unmodified;
+the optional embedded subset retains only required glyphs.
+
+Project: https://github.com/lxgw/kose-font
+License: https://github.com/lxgw/kose-font/blob/master/OFL.txt
+Full license and copyright notices: FONT-LICENSE-OFL.txt
+
+感谢 LXGW（落霞孤鹜）维护小赖字体，感谢 Nozomi Seto 创作上游濑户字体。
+Thanks to LXGW for Xiaolai and Nozomi Seto for the upstream SetoFont.
+Font copyright remains with its authors.
+
+Copyright 2020-2024 LXGW (https://github.com/lxgw/kose-font)
+Copyright 2014 Nozomi Seto (https://ja.osdn.net/projects/setofont/)
+
+Licensed under SIL Open Font License 1.1. See the full accompanying license.
+The font license applies to the font, not the project's source code.
+When distributing a game EXE with an embedded font, accompany it with this
+notice and FONT-LICENSE-OFL.txt. Keep the license of any replacement font.
+
+工具发布包包含未经修改的小赖字体 font.ttf，并在 Release 提供单独下载。
+外置字体模式读取游戏 EXE 同目录的 font.otf / font.ttf，否则回退系统字体。
+字体仅注册在游戏进程中，不安装到 Windows；外置模式不内嵌字体。
+The tools release includes the unmodified default Xiaolai font as font.ttf,
+also available as a separate Release asset. External mode tries
+font.otf then font.ttf beside the game EXE, falling back to the system font.
+Fonts are registered privately in the game process, not installed in Windows.

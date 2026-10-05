@@ -1,0 +1,62 @@
+# Build directories and Visual Studio state
+/build/
+/.vs/
+/out/
+/dist/
+*.obj
+*.o
+*.res
+*.pch
+*.pdb
+*.ilk
+*.exp
+*.lib
+*.idb
+*.tlog
+*.lastbuildstate
+*.vcxproj.user
+*.suo
+
+# Executables, embedded-runtime build output, and executable backups
+*.exe
+*.dll
+*.exe.*
+
+# Locally selected fonts (keep FONT-LICENSE-OFL.txt and FONT-NOTICES.txt)
+*.ttf
+*.otf
+*.ttc
+*.woff
+*.woff2
+!/font.ttf
+# The default Xiaolai font is shipped in the repository and Release.
+
+# Per-user UI settings and generated catalog exports
+/tools-settings.json
+/translation.csv
+/originals.txt
+/unpacked*.txt
+/unpacked*.tsv
+/unpacked*.csv
+/unpacked*.json
+/exported-font.*
+# translation.txt is the editable source catalog and is intentionally tracked.
+
+# Generated test fixtures/reports; retain the Python test sources
+/tests/*
+!/tests/*.py
+
+# Logs, temporary files, Python caches, editor and OS metadata
+*.log
+*.tmp
+*.bak
+*.py[cod]
+__pycache__/
+.pytest_cache/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+Desktop.ini
