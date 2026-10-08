@@ -61,3 +61,7 @@ __pycache__/
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Generated external font archives and translated games
+/font.dxa
+/moekuri_*.exe

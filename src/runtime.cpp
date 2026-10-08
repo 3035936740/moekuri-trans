@@ -1,6 +1,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include "format.h"
+#include "dxa_codec.h"
 #include <compressapi.h>
 extern "C" int _fltused = 0;
 extern "C" void* __cdecl memset(void* p,int c,size_t n) { unsigned char* b=(unsigned char*)p; while(n--)*b++=(unsigned char)c; return p; }
@@ -50,13 +51,28 @@ static bool externalFamily(const BYTE* b,DWORD bytes,wchar_t* family){
         return best>=0;
     }return false;
 }
+static BYTE* archiveFont(BYTE* archive,DWORD bytes,DWORD* fontBytes){
+    if(bytes<28)return 0;for(DWORD i=0;i<bytes;++i)archive[i]^=moeDxaKey()[i%12];if(archive[0]!='D'||archive[1]!='X'||archive[2]!=4||archive[3]!=0||moeDxa32(archive+24)!=932)return 0;
+    DWORD tableBytes=moeDxa32(archive+4),data=moeDxa32(archive+8),table=moeDxa32(archive+12),heads=moeDxa32(archive+16),dirs=moeDxa32(archive+20);
+    if(data<28||data>table||table>bytes||tableBytes>bytes-table||dirs>tableBytes||tableBytes-dirs<16||heads>tableBytes)return 0;
+    DWORD count=moeDxa32(archive+table+dirs+8),first=moeDxa32(archive+table+dirs+12);if(first>tableBytes-heads||count>10000||count>(tableBytes-heads-first)/44)return 0;
+    for(DWORD kind=1;kind<=2;++kind)for(DWORD i=0;i<count;++i){const BYTE* h=archive+table+heads+first+i*44;DWORD name=moeDxa32(h);if(moeDxa32(h+4)&16)continue;if(name>tableBytes||tableBytes-name<4)return 0;
+        DWORD words=(DWORD)archive[table+name]|((DWORD)archive[table+name+1]<<8);if(words>(tableBytes-name-4)/8)return 0;DWORD n=name+4+words*4;
+        const char* expected=kind==1?"font.otf":"font.ttf";bool match=n+9<=tableBytes;for(DWORD j=0;match&&j<9;++j){BYTE c=archive[table+n+j];if(c>='A'&&c<='Z')c+=32;if(c!=(BYTE)expected[j])match=false;}if(!match)continue;
+        DWORD offset=moeDxa32(h+32),size=moeDxa32(h+36),packed=moeDxa32(h+40),amount=packed==0xffffffffu?size:packed;
+        if(size<12||size>32u*1024u*1024u||offset>table-data||amount>table-data-offset)return 0;BYTE* memory=(BYTE*)VirtualAlloc(0,size,MEM_COMMIT|MEM_RESERVE,PAGE_READWRITE);if(!memory)return 0;
+        bool valid=true;if(packed==0xffffffffu)memcpy(memory,archive+data+offset,size);else valid=moeDxaDecode(archive+data+offset,amount,memory,size);
+        wchar_t family[LF_FACESIZE];if(valid&&externalFamily(memory,size,family)){*fontBytes=size;return memory;}VirtualFree(memory,0,MEM_RELEASE);
+    }return 0;
+}
 static void loadExternalFont(wchar_t* family){
     wchar_t* path=(wchar_t*)VirtualAlloc(0,32768*2,MEM_COMMIT|MEM_RESERVE,PAGE_READWRITE);if(!path)return;DWORD n=GetModuleFileNameW(0,path,32768),base=n;
     if(!n||n>=32768){VirtualFree(path,0,MEM_RELEASE);return;}while(base&&path[base-1]!=L'\\'&&path[base-1]!=L'/')--base;if(base+9>=32768){VirtualFree(path,0,MEM_RELEASE);return;}
-    for(DWORD kind=1;kind<=2;++kind){const wchar_t* name=kind==1?L"font.otf":L"font.ttf";for(DWORD j=0;j<9;++j)path[base+j]=name[j];
+    for(DWORD attempt=0;attempt<3;++attempt){DWORD kind=attempt==0?3:attempt;if(kind==3&&!(cfg->reserved&8))continue;const wchar_t* name=kind==3?L"font.dxa":kind==1?L"font.otf":L"font.ttf";for(DWORD j=0;j<9;++j)path[base+j]=name[j];
         HANDLE f=CreateFileW(path,GENERIC_READ,FILE_SHARE_READ,0,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,0);if(f==INVALID_HANDLE_VALUE)continue;LARGE_INTEGER size;bool valid=GetFileSizeEx(f,&size)&&size.QuadPart>=12&&size.QuadPart<=128*1024*1024;
         BYTE* memory=valid?(BYTE*)VirtualAlloc(0,(SIZE_T)size.QuadPart,MEM_COMMIT|MEM_RESERVE,PAGE_READWRITE):0;DWORD read=0;wchar_t selected[LF_FACESIZE];
         valid=memory&&ReadFile(f,memory,(DWORD)size.QuadPart,&read,0)&&read==(DWORD)size.QuadPart;CloseHandle(f);
+        if(valid&&kind==3){DWORD fontBytes=0;BYTE* decoded=archiveFont(memory,read,&fontBytes);VirtualFree(memory,0,MEM_RELEASE);memory=decoded;read=fontBytes;valid=decoded!=0;}
         if(valid&&externalFamily(memory,read,selected)){DWORD count=0;HANDLE resource=AddFontMemResourceEx(memory,read,0,&count);if(resource&&count){DWORD old;VirtualProtect(memory,read,PAGE_READONLY,&old);for(int i=0;i<LF_FACESIZE;++i){family[i]=selected[i];if(!selected[i])break;}fontCount=count;externalFontFile=kind;break;}}
         if(memory)VirtualFree(memory,0,MEM_RELEASE);
     }VirtualFree(path,0,MEM_RELEASE);
@@ -164,7 +180,7 @@ static int __cdecl drawHook(int draw,int x,int y,int extend,double ex,double ey,
     if(text && n && full<4096){e=find(text,n);if(!e && full!=n)e=find(text,full);if(e){text=e->target;length=(full!=n && e->sourceLen==full)?(n*e->targetLen+full-1)/full:e->targetLen;changed=true;budget=e->budget;}
         else if(translateText(text,n,formatted,4096,0,&budget)){text=formatted;length=len(text);changed=true;}}
     if(draw)InterlockedIncrement(&drawCount);else InterlockedIncrement(&widthCount);if(changed)InterlockedIncrement(&translatedCount);
-    if(changed && !vertical){double scale=cfg->scale/100.0;ex*=scale;ey*=scale;if(cfg->scale!=100)extend=1;
+    if(changed && !vertical){DWORD rowScale=(cfg->reserved&16)?budget>>16:100;if(cfg->reserved&16)budget&=65535;double scale=(cfg->scale/100.0)*(rowScale/100.0);ex*=scale;ey*=scale;if(scale!=1.0)extend=1;
         DWORD available=budget?budget:cfg->maxWidth;
         if(available){SIZE measured={0,0};int pixels=originalDraw(0,0,0,extend,ex,ey,text,0,0,0,1,font,0,length,0,&measured);if(measured.cx>0)pixels=measured.cx;
             if(pixels>(int)available){double fit=(double)available/pixels;double minimum=cfg->minScale/100.0;if(fit<minimum)fit=minimum;ex*=fit;extend=1;}}
@@ -238,9 +254,9 @@ static DWORD WINAPI descriptionTest(void*){
 }
 static DWORD WINAPI liveTest(void*){Sleep(15000);char report[1024];char* p=report;p=literal(p,"{\"draw_calls\":");p=number(p,drawCount);p=literal(p,",\"width_calls\":");p=number(p,widthCount);p=literal(p,",\"translated_calls\":");p=number(p,translatedCount);p=literal(p,",\"font_calls\":");p=number(p,createdFontCount);p=literal(p,",\"embedded_font_faces\":");p=number(p,fontCount);p=literal(p,",\"font_family\":\"");int n=WideCharToMultiByte(CP_UTF8,0,fontFace,-1,p,256,0,0);if(n>0)p+=n-1;p=literal(p,"\",\"scope\":\"real idle game rendering; no battle or full-story acceptance\"}\n");*p=0;writeReport(L"cn-live-test.json",report);ExitProcess(drawCount>0&&widthCount>0&&translatedCount>0&&createdFontCount>0?0:72);return 0;}
 static const wchar_t* testRendered;
-static int testLength,testDraw;
+static int testLength,testDraw;static double testEy;
 static wchar_t testRenderedCopy[4096];
-static int __cdecl mockBackend(int draw,int,int,int,double,double,const wchar_t* text,unsigned,void*,const RECT*,int,int,unsigned,int length,int,SIZE* size){testRendered=text;testLength=length;testDraw=draw;int used=length>=0?length:len(text);if(used>4095)used=4095;for(int i=0;i<used;++i)testRenderedCopy[i]=text[i];testRenderedCopy[used]=0;if(size){size->cx=length*20;size->cy=24;}return length*20;}
+static int __cdecl mockBackend(int draw,int,int,int,double,double ey,const wchar_t* text,unsigned,void*,const RECT*,int,int,unsigned,int length,int,SIZE* size){testEy=ey;testRendered=text;testLength=length;testDraw=draw;int used=length>=0?length:len(text);if(used>4095)used=4095;for(int i=0;i<used;++i)testRenderedCopy[i]=text[i];testRenderedCopy[used]=0;if(size){size->cx=length*20;size->cy=24;}return length*20;}
 static bool progressiveStoryTest(const wchar_t* text,int n){
     Backend native=originalDraw;originalDraw=mockBackend;bool ok=true;wchar_t prefix[4096];
     for(int cut=0;cut<=n&&ok;++cut){for(int i=0;i<cut;++i)prefix[i]=text[i];prefix[cut]=0;
@@ -252,7 +268,7 @@ static bool runtimeTest(){
     Entry format={L"ステージ%02d",L"第%02d关",0,0,0,0};format.sourceLen=len(format.source);format.targetLen=len(format.target);wchar_t result[64];if(!formatMatch(&format,L"ステージ12",len(L"ステージ12"),result,64)||len(result)!=4||!same(result,L"第12关",4))return false;
     if(!entryCount)return true;const Entry* e=entries;Backend native=originalDraw;originalDraw=mockBackend;
     wchar_t line[4096];for(int i=0;i<e->sourceLen;++i)line[i]=e->source[i];line[e->sourceLen]=0;if(!translateReadLine(line,4096)||len(line)!=e->targetLen||!same(line,e->target,e->targetLen)){originalDraw=native;return false;}
-    drawHook(1,0,0,0,1.0,1.0,e->source,0,0,0,1,0,0,e->sourceLen,0,0);bool ok=testDraw==1&&testLength==e->targetLen&&testRendered==e->target;
+    drawHook(1,0,0,0,1.0,1.0,e->source,0,0,0,1,0,0,e->sourceLen,0,0);double expectedScale=(cfg->scale/100.0)*((cfg->reserved&16)?(e->budget>>16)/100.0:1.0);bool ok=testDraw==1&&testLength==e->targetLen&&testRendered==e->target&&testEy==expectedScale;
     drawHook(0,0,0,0,1.0,1.0,e->source,0,0,0,1,0,0,e->sourceLen,0,0);ok=ok&&testDraw==0&&testLength==e->targetLen&&testRendered==e->target;
     originalDraw=native;drawCount=widthCount=translatedCount=0;return ok;
 }

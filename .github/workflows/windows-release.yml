@@ -46,6 +46,8 @@ jobs:
         run: ./build.ps1 -Package
       - name: Verify release contents and isolated tool startup
         run: python tests/ci_smoke.py --package
+      - name: Verify DXA repacking and tagged CSV controls
+        run: python tests/dxa.py
       - name: Verify TXT and CSV import examples
         run: python tests/sample_marker.py
       - uses: actions/upload-artifact@v7

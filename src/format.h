@@ -8,6 +8,8 @@ struct CNHeader {
     LONG height, width;
     DWORD charset, scale, maxWidth, minScale, textRva, reserved;
 };
+// reserved flags: 1 subset, 2 external, 4 omit DXA, 8 font.dxa, 16 per-row scale.
+// Flag 16 stores scale percent in budget bits 16..31, pixel width in bits 0..15.
 struct CNRecord { DWORD source, target, hash, budget; };
 // Version 2 is a compressed container around the unchanged version 1 payload.
 struct CNCompressedHeader {char magic[8];DWORD version,total,rawBytes,algorithm,packedBytes,checksum;};

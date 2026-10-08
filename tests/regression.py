@@ -79,7 +79,7 @@ def main():
     for catalog in (csv, sources):
         with catalog.open(encoding='utf-8-sig',newline='') as file:
             for row in csvmodule.DictReader(file):
-                used.update(map(ord,row['Original'] + row['Translation']))
+                used.update(map(ord,row['Original'] + row['Translated']))
     assert used & glyphs(original_font) <= glyphs(reduced_font)
     REPORT['exact_txt_roundtrip'] = True
     REPORT['used_font_glyphs_preserved'] = True
