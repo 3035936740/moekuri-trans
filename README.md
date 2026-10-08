@@ -6,9 +6,9 @@ UTF-8 translation editor, extractor and single-EXE packager for the Japanese 1.1
 
 `catalog-overrides.json` records four title/numeral corrections and preserves 17 script identifiers. Standalone `@` identifiers such as `@ブラリボン` remain Japanese and are excluded from the runtime lookup table; visible names such as `ブラリボン` can still be translated. Story commands are preserved; encyclopedia descriptions and dialogue after `#txt@` are translated before rendering, so typewriter text starts in the target language.
 
-`@ブラリボン` 等独立 `@` 标识符保留日文，并排除出运行时替换表；显示名称 `ブラリボン` 仍可译为“布拉玛（缎带）”。剧情命令不翻译，图鉴介绍和 `#txt@` 后的对白在读取时翻译，剧情从第一个字起直接显示译文。
+`@ブラリボン` 等独立 `@` 标识符保留日文，并排除出运行时替换表；显示名称 `ブラリボン` 仍可译为“布拉玛（缎带）”。剧情命令不翻译；关闭 DXA 屏蔽时，图鉴介绍和 `#txt@` 后的对白在读取时翻译，剧情从第一个字起直接显示译文。
 
-技能、能力、职业、地形和战斗台词的 CSV 显示字段也在原生读取阶段翻译，再交给游戏解析与换行；数值、编号和非显示字段保留原样。强化提示及带数值的角色信息使用完整参数模板，支持无空格的数值行。原版资源档案不修改，超过原生行缓冲区的替换会保留原文。
+技能、能力、职业、地形和战斗台词的 CSV 显示字段在完整模式下也在原生读取阶段翻译，再交给游戏解析与换行；数值、编号和非显示字段保留原样。强化提示及带数值的角色信息使用完整参数模板，支持无空格的数值行。原版资源档案不修改，超过原生行缓冲区的替换会保留原文。
 
 [中文](#zh-简体中文) · [English](#en-english) · [한국어](#ko-한국어) · [Français](#fr-français) · [日本語](#ja-日本語) · [Italiano](#it-italiano) · [Deutsch](#de-deutsch) · [Русский](#ru-русский) · [العربية](#ar-العربية) · [Español](#es-español)
 
@@ -22,6 +22,7 @@ moekuri-trans/
 ├── build.cmd               MSVC x86 build
 ├── install-build.ps1       Install the built tool and keep previous EXEs
 ├── 1.10trans.txt           JP 1.10 Simplified Chinese import example
+├── 1.10trans_omidxa.txt    EXE-only import example (default DXA exclusion)
 ├── 1.10trans.csv           Equivalent UTF-8 BOM CSV example (not duplicated in Release)
 ├── 1.10trans-report.json   Reference coverage and provenance
 ├── translation.txt         Local working catalog
@@ -36,6 +37,8 @@ moekuri-trans/
 Local/generated files: `MoeKuriTools.exe`, `build/`, `tools-settings.json`, dist/, test reports and exported catalogs. The current workspace keeps this project in `moekuri求助/1.10/tools/`.
 
 ## zh-简体中文
+
+“屏蔽 DXA 翻译（仅 EXE 文本）”默认勾选。开启时提取、导出与打包只保留原版 EXE 的文本，DXA 图鉴、剧情、CSV 读取保持原文；同时存在于 EXE/DXA 的同名文本也排除。完整词库保留在编辑器中，取消勾选可恢复完整模式。`1.10trans_omidxa.txt` 是 1,805 条 EXE-only 导入样例；完整样例仍是 `1.10trans.txt`。导出筛选需要选择原版 1.10 EXE。CLI 打包/提取默认 `--omit-dxa 1`，使用 `--omit-dxa 0` 恢复完整模式；`--filter-exe original.exe input.txt output.txt/csv` 单独筛选词库。
 
 ### 1.10 导入样例与 EXE 标记
 
@@ -53,7 +56,7 @@ Local/generated files: `MoeKuriTools.exe`, `build/`, `tools-settings.json`, dist
 
 勾选 **[外置字体]** 后，运行时从游戏 EXE 所在目录依次尝试 `font.otf`、`font.ttf`，读取文件内部的实际字体名称；文件缺失或无效时使用系统字体。此模式不内嵌字体。外置选项默认关闭，字体优化默认开启。CLI 使用 `--external-font 1`。图鉴完整介绍在原生文本读取阶段翻译，再由游戏拆行显示。
 
-一键构建：`build.bat` 或 `powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1`；加 `-Package` 会编译、检查依赖并生成发布包。上传本项目目录的内容作为 GitHub 仓库根目录，推送 `v*` 标签后自动编译并发布 Release；普通提交和 PR 只构建，Actions 手动运行可指定已有标签。发布附件包括 ZIP、独立的 `font.ttf` 和 SHA256SUMS.txt；ZIP 收录工具 EXE、README、1.10trans.txt、默认小赖字体 `font.ttf` 和两份字体许可/通知。默认字体随仓库保存，打包时也复制到 `dist/font.ttf`，校验文件覆盖 ZIP 和字体。原游戏、其他本机字体、构建缓存、测试数据、设置和备份仍不打包。Windows 系统 DLL 由系统提供；翻译运行时 DLL 在构建时内嵌到工具，随后打入游戏 EXE。
+一键构建：`build.bat` 或 `powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1`；加 `-Package` 会编译、检查依赖并生成发布包。上传本项目目录的内容作为 GitHub 仓库根目录，推送 `v*` 标签后自动编译并发布 Release；普通提交和 PR 只构建，Actions 手动运行可指定已有标签。发布附件包括 ZIP、独立的 `font.ttf` 和 SHA256SUMS.txt；ZIP 收录工具 EXE、README、两份 TXT 样例、默认小赖字体 `font.ttf` 和两份字体许可/通知。默认字体随仓库保存，打包时也复制到 `dist/font.ttf`，校验文件覆盖 ZIP 和字体。原游戏、其他本机字体、构建缓存、测试数据、设置和备份仍不打包。Windows 系统 DLL 由系统提供；翻译运行时 DLL 在构建时内嵌到工具，随后打入游戏 EXE。
 
 [build.ps1](build.ps1) · [package-release.ps1](package-release.ps1) · [Windows workflow](.github/workflows/windows-release.yml)
 
@@ -78,7 +81,7 @@ Local/generated files: `MoeKuriTools.exe`, `build/`, `tools-settings.json`, dist
 
 字体、查找数据及原始 UTF-8 词库一起进行 XPRESS Huffman 无损压缩，运行时在内存解压并设为只读，不生成临时文件，也不需要额外压缩 DLL 文件。新工具同时可解包旧的未压缩 EXE。
 
-当前 16,832 条词库 + Xiaolai 字体，测试版由 29,322,752 字节（27.96 MiB）降至 9,151,488 字节（8.73 MiB），约减少 69%；内嵌字体由 22,220,806 字节精简到 4,399,724 字节。已对照完整字体检查词库及可提取文本所需字符的字形覆盖，并通过加载和字体注册探针。
+当前 16,832 条词库 + Xiaolai 字体，测试版由 29,322,752 字节（27.96 MiB）降至 9,152,000 字节（8.73 MiB），约减少 69%；内嵌字体由 22,220,806 字节精简到 4,399,724 字节。已对照完整字体检查词库及可提取文本所需字符的字形覆盖，并通过加载和字体注册探针。
 
 精简版解包得到的是精简后的字体。如果新增了原先未保留的字符，请重新选择完整字体文件后生成；对于无法提取的动态内容，也可关闭字体优化保留完整覆盖。
 
@@ -137,9 +140,11 @@ python tests/regression.py
 
 ## en-English
 
+Exclude DXA (EXE text only) is checked by default. Extraction, GUI export and packing retain original EXE text; DXA resource reading stays untranslated. Shared EXE/DXA strings are excluded too. The editor keeps the complete catalog; uncheck to restore full mode. `1.10trans_omidxa.txt` contains 1,805 EXE-only entries; `1.10trans.txt` remains the full sample. Select the original 1.10 EXE for filtering. CLI pack/extract default to `--omit-dxa 1`; use `--omit-dxa 0` for full mode. `--filter-exe original.exe input.txt output.txt/csv` filters a catalog separately.
+
 ### 1.10 import example and EXE marker
 
-Use Import catalog to open `1.10trans.txt` or `1.10trans.csv`. Both contain **16,832 Simplified Chinese entries**, covering all **13,108 reference entries**, plus terrain effects, display labels and exact line/Unicode-width variants. Credits and identical terms retain their source spelling. TXT is UTF-8; CSV is UTF-8 with BOM. Startup loads local `translation.txt`, falling back to `1.10trans.txt`. The minimal release ships only the TXT example; export CSV with the tool.
+Use Import catalog to open `1.10trans.txt` or `1.10trans.csv`. Both contain **16,832 Simplified Chinese entries**, covering all **13,108 reference entries**, plus terrain effects, display labels and exact line/Unicode-width variants. Credits and identical terms retain their source spelling. TXT is UTF-8; CSV is UTF-8 with BOM. Startup loads local `translation.txt`, falling back to `1.10trans.txt`. The minimal release ships TXT examples; export CSV with the tool.
 
 Generated game EXEs have a read-only **`.mktrans`** PE section containing ASCII `moekuri_trans`, NUL, then UTF-8 JSON: marker version, original EXE and catalog SHA256, row count and font mode. Inspect with a PE viewer or `MoeKuriTools.exe --inspect translated.exe`.
 
@@ -176,6 +181,8 @@ Build with **Visual Studio 2022**, the **Desktop development with C++** workload
 Only the original EXE with SHA256 `1c79a2d328d8ccd69765ac624b48f2317d80688c3dc7439ee3c23fc1fc05f847` is supported. Stored text is UTF-8; the engine interface remains UTF-16. Regression covers formats, pagination, editing, accessibility, glyph coverage, decompression and loader probes. Real battles and the complete story still need manual acceptance; extracted strings are candidates requiring review.
 
 ## ko-한국어
+
+DXA 번역 제외 옵션은 기본으로 켜집니다. 추출·GUI 내보내기·패키징은 원본 EXE 텍스트만 사용하며 DXA 텍스트와 EXE/DXA 공통 항목을 제외합니다. 편집기의 전체 목록은 유지됩니다. `1.10trans_omidxa.txt`는 EXE 전용 1,805개 항목입니다. 원본 1.10 EXE를 선택하세요. 전체 모드는 옵션 해제 또는 `--omit-dxa 0`으로 복원합니다.
 
 ### 1.10 가져오기 예제 및 EXE 표시
 
@@ -215,6 +222,8 @@ VS 2022의 C++ 데스크톱 개발 구성 요소와 Windows SDK를 설치하고 
 
 ## fr-Français
 
+Exclure DXA est activé par défaut. Extraction, export GUI et génération utilisent uniquement le texte EXE, en excluant aussi les textes communs EXE/DXA. Le catalogue complet reste dans l’éditeur. `1.10trans_omidxa.txt` contient 1 805 entrées EXE. Sélectionnez l’EXE original 1.10. Décochez ou utilisez `--omit-dxa 0` pour rétablir le mode complet.
+
 ### Exemple 1.10 et marqueur EXE
 
 Importer catalogue ouvre `1.10trans.txt` ou `1.10trans.csv` : **16 832 entrées en chinois simplifié**, dont les **13 108 entrées de référence**, effets de terrain et variantes d’affichage, de lignes et de largeur Unicode. Les noms crédités et termes identiques restent inchangés. TXT : UTF-8 ; CSV : UTF-8 avec BOM. Au démarrage, `translation.txt` est prioritaire, sinon `1.10trans.txt`. La Release minimale contient le TXT ; exporter le CSV depuis l’outil.
@@ -252,6 +261,8 @@ Installez VS 2022 avec le développement desktop C++ et un Windows SDK, puis ex�
 Le cas testé passe de 27,96 à 8,73 MiB avec réduction de police et compression sans perte. Les formats, pages, glyphes et sondes de chargement sont vérifiés ; les combats et l’histoire complète attendent une validation manuelle. Les chaînes extraites sont des candidates à examiner.
 
 ## ja-日本語
+
+DXA 翻訳の除外は既定で有効です。抽出・GUI 書き出し・生成は EXE テキストのみを使用し、EXE/DXA 共通の文字列も除外します。完全な辞書は編集画面に保持されます。`1.10trans_omidxa.txt` は EXE 専用の 1,805 項目です。原版 1.10 EXE を選択してください。チェック解除または `--omit-dxa 0` で完全モードに戻せます。
 
 ### 1.10 辞書サンプルと EXE マーカー
 
@@ -291,6 +302,8 @@ VS 2022 の C++ デスクトップ開発と Windows SDK を用意し、`cmd /c b
 
 ## it-Italiano
 
+Escludi DXA è attivo per impostazione predefinita. Estrazione, esportazione GUI e creazione usano solo testo EXE, escludendo anche le stringhe comuni EXE/DXA. Il catalogo completo resta nell’editor. `1.10trans_omidxa.txt` contiene 1.805 voci EXE. Seleziona l’EXE originale 1.10. Disattiva l’opzione o usa `--omit-dxa 0` per la modalità completa.
+
 ### Esempio 1.10 e marcatore EXE
 
 Importa catalogo apre `1.10trans.txt` o `1.10trans.csv`: **16.832 voci in cinese semplificato**, incluse le **13.108 voci di riferimento**, effetti del terreno e varianti di visualizzazione, righe e larghezza Unicode. Crediti e termini identici sono preservati. TXT: UTF-8; CSV: UTF-8 con BOM. All’avvio si usa `translation.txt`, altrimenti `1.10trans.txt`. La release minima include solo il TXT; il CSV si esporta dallo strumento.
@@ -328,6 +341,8 @@ Installa VS 2022 con sviluppo desktop C++ e Windows SDK; compila con `cmd /c bui
 Il caso verificato è passato da 27,96 a 8,73 MiB grazie ai glifi ridotti e alla compressione senza perdita. Formati, pagine, glifi e caricamento sono verificati; battaglie e storia completa richiedono ancora una verifica manuale. Le stringhe estratte sono candidate da esaminare.
 
 ## de-Deutsch
+
+DXA ausschließen ist standardmäßig aktiviert. Extraktion, GUI-Export und Erzeugung verwenden nur EXE-Texte; gemeinsame EXE/DXA-Texte werden ebenfalls ausgeschlossen. Der vollständige Katalog bleibt im Editor. `1.10trans_omidxa.txt` enthält 1.805 EXE-Einträge. Wählen Sie die Original-EXE 1.10. Deaktivieren Sie die Option oder verwenden Sie `--omit-dxa 0` für den vollständigen Modus.
 
 ### 1.10-Importbeispiel und EXE-Markierung
 
@@ -367,6 +382,8 @@ Der geprüfte Fall schrumpfte durch Schriftoptimierung und verlustfreie Kompress
 
 ## ru-Русский
 
+Исключение DXA включено по умолчанию. Извлечение, экспорт GUI и сборка сохраняют только текст EXE, исключая также общие строки EXE/DXA. Полный словарь остаётся в редакторе. `1.10trans_omidxa.txt` содержит 1 805 записей EXE. Выберите оригинальный EXE 1.10. Снимите флажок или используйте `--omit-dxa 0` для полного режима.
+
 ### Пример 1.10 и метка EXE
 
 Импорт словаря открывает `1.10trans.txt` или `1.10trans.csv`: **16 832 записей на упрощённом китайском**, включая все **13 108 исходную запись**, эффекты местности, подписи и варианты строк/ширины Unicode. Имена в титрах и одинаковые термины сохраняются. TXT — UTF-8, CSV — UTF-8 с BOM. При запуске используется `translation.txt`, иначе `1.10trans.txt`. Минимальный выпуск содержит только TXT; CSV экспортируется инструментом.
@@ -405,6 +422,8 @@ TXT/TSV разделяют поля настоящей табуляцией; в�
 
 ## ar-العربية
 
+استبعاد DXA مفعّل افتراضيًا. يستخدم الاستخراج والتصدير من الواجهة والبناء نص EXE فقط، ويستبعد النص المشترك بين EXE وDXA أيضًا. يبقى القاموس الكامل في المحرر. يحتوي `1.10trans_omidxa.txt` على 1,805 مدخلات EXE. اختر EXE الأصلي للإصدار 1.10. ألغِ الخيار أو استخدم `--omit-dxa 0` لاستعادة الوضع الكامل.
+
 ### مثال 1.10 وعلامة EXE
 
 افتح `1.10trans.txt` أو `1.10trans.csv` عبر استيراد القاموس. يحتوي المثال على **16,832 نصًا بالصينية المبسطة**، ويغطي **13,108 نصًا مرجعيًا**، إضافةً إلى تأثيرات التضاريس والتسميات واختلافات الأسطر وعرض Unicode. تُحفظ أسماء الاعتمادات والمصطلحات المتطابقة. TXT بترميز UTF-8 وCSV بترميز UTF-8 مع BOM. يبدأ بقراءة `translation.txt` ثم `1.10trans.txt` عند غيابه. الإصدار المصغّر يتضمن TXT فقط؛ يمكن تصدير CSV بالأداة.
@@ -442,6 +461,8 @@ TXT/TSV разделяют поля настоящей табуляцией; в�
 انخفض المثال المختبَر من 27.96 إلى 8.73 MiB عبر تحسين الخط والضغط دون فقدان. تم التحقق من الصيغ والصفحات والحروف والتحميل؛ ما زالت المعارك والقصة الكاملة بحاجة إلى اختبار يدوي، والنصوص المستخرجة بحاجة إلى مراجعة.
 
 ## es-Español
+
+Excluir DXA está activado por defecto. Extracción, exportación GUI y creación usan solo texto EXE, excluyendo también cadenas compartidas EXE/DXA. El catálogo completo se conserva en el editor. `1.10trans_omidxa.txt` contiene 1.805 entradas EXE. Selecciona el EXE original 1.10. Desmarca la opción o usa `--omit-dxa 0` para restaurar el modo completo.
 
 ### Ejemplo 1.10 y marca EXE
 

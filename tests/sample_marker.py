@@ -3,6 +3,7 @@ from pathlib import Path
 import hashlib,json,re,struct,subprocess,sys,tempfile,zipfile
 ROOT=Path(__file__).resolve().parent.parent
 TOOL=ROOT/'MoeKuriTools.exe'
+RELEASE_DIR = Path(sys.argv[sys.argv.index('--release-dir')+1]).resolve() if '--release-dir' in sys.argv else ROOT/'dist'
 sys.stdout.reconfigure(encoding='utf-8')
 def run(tool,*args,cwd=ROOT):
     r=subprocess.run([str(tool),*map(str,args)],cwd=cwd,capture_output=True,timeout=30)
@@ -27,7 +28,7 @@ def main():
         run(TOOL,'--convert',txt,temp/'txt-canonical.txt')
         run(TOOL,'--import-csv',csv,temp/'csv-canonical.txt')
         assert (temp/'txt-canonical.txt').read_bytes()==(temp/'csv-canonical.txt').read_bytes()
-        with zipfile.ZipFile(ROOT/'dist/moekuri-trans-windows-x86.zip') as archive:archive.extractall(temp)
+        with zipfile.ZipFile(RELEASE_DIR/'moekuri-trans-windows-x86.zip') as archive:archive.extractall(temp)
         assert (temp/'1.10trans.txt').read_bytes()==txt.read_bytes()
         assert not (temp/'translation.txt').exists()
         if '--gui' in sys.argv:

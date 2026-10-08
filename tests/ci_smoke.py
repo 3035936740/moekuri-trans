@@ -9,11 +9,12 @@ import tempfile
 import zipfile
 
 ROOT = Path(__file__).resolve().parent.parent
+RELEASE_DIR = Path(sys.argv[sys.argv.index('--release-dir')+1]).resolve() if '--release-dir' in sys.argv else ROOT/'dist'
 SYSTEM_DLLS = {'kernel32.dll', 'user32.dll', 'gdi32.dll', 'comctl32.dll',
                'comdlg32.dll', 'shell32.dll', 'bcrypt.dll', 'ole32.dll',
                'oleaut32.dll', 'cabinet.dll', 'fontsub.dll', 'advapi32.dll',
                'ntdll.dll', 'shlwapi.dll', 'version.dll', 'winmm.dll'}
-RELEASE_FILES = {'MoeKuriTools.exe', 'README.md', '1.10trans.txt', 'font.ttf',
+RELEASE_FILES = {'MoeKuriTools.exe', 'README.md', '1.10trans.txt', '1.10trans_omidxa.txt', 'font.ttf',
                  'FONT-LICENSE-OFL.txt', 'FONT-NOTICES.txt'}
 
 def pe_imports(path):
@@ -60,6 +61,7 @@ def main():
     assert len(json.loads(run(tool, '--language-list'))) == 11
     assert json.loads(run(tool, '--validate', ROOT/'translation.txt'))['valid']
     assert json.loads(run(tool, '--validate', ROOT/'1.10trans.txt'))['valid']
+    assert json.loads(run(tool, '--validate', ROOT/'1.10trans_omidxa.txt'))['valid']
     with tempfile.TemporaryDirectory(dir=ROOT/'build', prefix='ci-') as tmp:
         tmp = Path(tmp)
         for ext in ('csv', 'tsv', 'json'):
@@ -67,10 +69,10 @@ def main():
             run(tool, '--convert', ROOT/'translation.txt', out)
             assert json.loads(run(tool, '--validate', out))['valid']
         if '--package' in sys.argv:
-            archive = ROOT/'dist/moekuri-trans-windows-x86.zip'
-            font = ROOT/'dist/font.ttf'
+            archive = RELEASE_DIR/'moekuri-trans-windows-x86.zip'
+            font = RELEASE_DIR/'font.ttf'
             assert font.read_bytes() == (ROOT/'font.ttf').read_bytes()
-            checksums = (ROOT/'dist/SHA256SUMS.txt').read_text(encoding='utf-8').splitlines()
+            checksums = (RELEASE_DIR/'SHA256SUMS.txt').read_text(encoding='utf-8').splitlines()
             assert checksums == [hashlib.sha256(p.read_bytes()).hexdigest()+'  '+p.name
                                  for p in (archive, font)]
             with zipfile.ZipFile(archive) as zip:

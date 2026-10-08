@@ -58,7 +58,7 @@ def main():
     font_dir.mkdir(exist_ok=True)
     game=font_dir/'game.exe'
     result=subprocess.run([str(TOOL),'--pack',str(ORIGINAL),str(ROOT/'translation.txt'),str(game),
-                           '--font',str(ROOT/'missing-unused.ttf'),'--external-font','1'],capture_output=True,timeout=30)
+                           '--omit-dxa','0','--font',str(ROOT/'missing-unused.ttf'),'--external-font','1'],capture_output=True,timeout=30)
     assert result.returncode == 0, result.stdout
     for name in ('font.otf','font.ttf'):
         p=font_dir/name

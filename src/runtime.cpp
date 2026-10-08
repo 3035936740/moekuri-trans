@@ -108,7 +108,7 @@ static int __cdecl openHook(const wchar_t* path,int flag,int asyncFlag){
     if(kind){DWORD slot=(DWORD)InterlockedIncrement(&resourceSlot);ResourceState* state=resourceStates+(slot%64);InterlockedExchange(&state->handle,0);state->kind=kind;state->dialogue=0;InterlockedExchange(&state->handle,handle);}return handle;
 }
 static int __cdecl getsHook(wchar_t* text,int capacity,int handle){
-    bool probing=resourceProbeThread&&GetCurrentThreadId()==resourceProbeThread;if(probing)resourceProbeEntry=0;int result=originalGets(text,capacity,handle);if(result<0)return result;
+    bool probing=resourceProbeThread&&GetCurrentThreadId()==resourceProbeThread;if(probing)resourceProbeEntry=0;int result=originalGets(text,capacity,handle);if(result<0||(cfg->reserved&4))return result;
     ResourceState* state=0;for(int i=0;i<64;++i)if(resourceStates[i].handle==handle){state=resourceStates+i;break;}if(!state)return result;
     if(state->kind>=3){if(!state->dialogue++){return result;}if(translateCsvLine(text,capacity,state->kind)){InterlockedIncrement(&resourceTranslatedCount);return len(text,capacity);}return result;}
     if(state->kind==2){if(text&&text[0]==L'#'){state->dialogue=len(text)>=5&&same(text,L"#txt@",5);return result;}if(!state->dialogue)return result;}
@@ -210,7 +210,8 @@ static DWORD WINAPI csvTest(void*){
         for(int row=0;row<4096;++row){int x=originalGets(a,1024,raw),y=getsHook(b,1024,translated);if(x<0||y<0){ok=ok&&(x<0&&y<0)&&row>1;break;}++rows;if(x!=y||!same(a,b,x))++changed;ok=ok&&WriteFile(rawFile,a,len(a)*2,&wrote,0)&&WriteFile(translatedFile,b,len(b)*2,&wrote,0);const wchar_t newline[]=L"\r\n";WriteFile(rawFile,newline,4,&wrote,0);WriteFile(translatedFile,newline,4,&wrote,0);if(row==4095)ok=false;}
         CloseHandle(rawFile);CloseHandle(translatedFile);
     }
-    ok=ok&&rows>1500&&changed>500;char report[256];char* p=literal(report,"{\"csv_rows\":");p=number(p,rows);p=literal(p,",\"translated_rows\":");p=number(p,changed);p=literal(p,",\"passed\":");p=literal(p,ok?"true":"false");p=literal(p,"}\n");*p=0;writeReport(L"cn-csv.json",report);ExitProcess(ok?0:74);return 0;
+    if(cfg->reserved&4){const wchar_t* paths[]={L"data/dat/zukan.dat",L"data/dat/story/story0.dat"};for(int file=0;file<2;++file){const wchar_t* path=paths[file];int translated=openHook(path,0,0),raw=originalOpen(path,0,0);wchar_t a[4096],b[4096];DWORD checked=0;if(translated<=0||raw<=0){ok=false;break;}for(;checked<4096;++checked){int x=originalGets(a,4096,raw),y=getsHook(b,4096,translated);if(x<0||y<0){ok=ok&&x<0&&y<0;break;}if(x!=y||!same(a,b,len(a)))ok=false;}ok=ok&&checked>30&&checked<4096;}}
+    ok=ok&&rows>1500&&((cfg->reserved&4)?changed==0:changed>500);char report[256];char* p=literal(report,"{\"csv_rows\":");p=number(p,rows);p=literal(p,",\"translated_rows\":");p=number(p,changed);p=literal(p,",\"passed\":");p=literal(p,ok?"true":"false");p=literal(p,"}\n");*p=0;writeReport(L"cn-csv.json",report);ExitProcess(ok?0:74);return 0;
 }
 static bool progressiveStoryTest(const wchar_t* text,int n);
 static DWORD WINAPI descriptionTest(void*){
@@ -293,7 +294,7 @@ extern "C" __declspec(dllexport) void __cdecl CNInit(const CNHeader* header){
     }
     if(hasArgument(L"--cn-probe")){
         const wchar_t* test=L"設定";const Entry* e=find(test,len(test));MEMORY_BASIC_INFORMATION info;VirtualQuery(cfg,&info,sizeof(info));MEMORY_BASIC_INFORMATION decodedInfo;VirtualQuery(decoded,&decodedInfo,sizeof(decodedInfo));
-        MEMORY_BASIC_INFORMATION storedInfo;VirtualQuery(stored,&storedInfo,sizeof(storedInfo));bool ro=(info.Protect==PAGE_READONLY)&&(decodedInfo.Protect==PAGE_READONLY)&&(storedInfo.Protect==PAGE_READONLY);bool valid=ro&&runtimeTest()&&tooltipTest();
+        MEMORY_BASIC_INFORMATION storedInfo;VirtualQuery(stored,&storedInfo,sizeof(storedInfo));bool ro=(info.Protect==PAGE_READONLY)&&(decodedInfo.Protect==PAGE_READONLY)&&(storedInfo.Protect==PAGE_READONLY);bool valid=ro&&runtimeTest()&&((cfg->reserved&4)||tooltipTest());
         // Probe the native width/draw ABI only after DxLib initializes in a real session.
         const char ok[]= "{\"initialized\":true,\"payload_readonly\":true,\"decoded_readonly\":true,\"font_hook\":true,\"text_hook\":true,\"resource_line_hook\":true,\"translation_before_wrapping\":true,\"single_exe\":true,\"draw_and_width_translation\":true,\"formatted_translation\":true,\"skill_tooltip_translation\":true}\n";
         writeReport(L"cn-probe.json",valid?ok:"{\"probe_failed\":true}\n");ExitProcess(valid?0:71);

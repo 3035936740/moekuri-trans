@@ -63,7 +63,7 @@ def main():
     REPORT['gui'] = json.loads((TEST / 'gui-pagination.json').read_text(encoding='utf-8'))
     assert REPORT['gui']['gui_passed'] == 'true', REPORT['gui']
     patched = ROOT / 'build' / 'optimized.exe'
-    REPORT['patch'] = json.loads(run('--pack', original, ROOT / 'translation.txt', patched,
+    REPORT['patch'] = json.loads(run('--pack', original, ROOT / 'translation.txt', patched, '--omit-dxa', '0',
         '--font', ROOT / 'font.ttf', '--height', '0', '--width', '0', '--scale', '100',
         '--max-width', '620', '--min-scale', '70')[0])
     recovered = TEST / 'exact-roundtrip.txt'
@@ -86,7 +86,7 @@ def main():
     REPORT['font_original_bytes'] = len(original_font)
     REPORT['font_subset_bytes'] = len(reduced_font)
     full = TEST / 'full-font.exe'
-    run('--pack', original, ROOT / 'translation.txt', full, '--font', ROOT / 'font.ttf', '--subset-font', '0')
+    run('--pack', original, ROOT / 'translation.txt', full, '--omit-dxa', '0', '--font', ROOT / 'font.ttf', '--subset-font', '0')
     full_font = TEST / 'full-font.ttf'
     run('--unpack', full, TEST / 'full-font.txt', '--font-out', full_font)
     assert full_font.read_bytes() == original_font

@@ -1,9 +1,10 @@
+param([string]$OutputDirectory = "")
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 # Explicit allowlist: never recursively package the working directory.
-$files = @('MoeKuriTools.exe', 'README.md', '1.10trans.txt', 'font.ttf', 'FONT-LICENSE-OFL.txt', 'FONT-NOTICES.txt')
-$destination = Join-Path $PSScriptRoot 'dist'
+$files = @('MoeKuriTools.exe', 'README.md', '1.10trans.txt', '1.10trans_omidxa.txt', 'font.ttf', 'FONT-LICENSE-OFL.txt', 'FONT-NOTICES.txt')
+$destination = if ($OutputDirectory) { [IO.Path]::GetFullPath($OutputDirectory) } else { Join-Path $PSScriptRoot 'dist' }
 [IO.Directory]::CreateDirectory($destination) | Out-Null
 $zipPath = Join-Path $destination 'moekuri-trans-windows-x86.zip'
 $temporary = Join-Path $destination ('release-' + [Guid]::NewGuid().ToString('N') + '.tmp')
